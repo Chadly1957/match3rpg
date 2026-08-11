@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
-import { areAdjacent, createInitialGrid, hasMatchAt, refillMatched, swap } from '../game/board'
+import { collapseAndRefill, createInitialGrid, hasMatchAt, swap } from '../game/board'
 import { GRID_SIZE, type IconType } from '../game/types'
 
 const SWAP_BACK_DELAY_MS = 350
@@ -36,7 +36,7 @@ export default function Board() {
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const [invalidPair, setInvalidPair] = useState<[number, number] | null>(null)
   const [matchedCells, setMatchedCells] = useState<number[]>([])
-  const [message, setMessage] = useState('Drag an icon onto a neighbor to swap it.')
+  const [message, setMessage] = useState('Drag an icon onto another to swap it.')
 
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
@@ -79,9 +79,9 @@ export default function Board() {
         setMatchedCells(matchedList)
         setMessage('Match found!')
         window.setTimeout(() => {
-          setGrid((current) => refillMatched(current, matchedList))
+          setGrid((current) => collapseAndRefill(current, matchedList))
           setMatchedCells([])
-          setMessage('Drag an icon onto a neighbor to swap it.')
+          setMessage('Drag an icon onto another to swap it.')
           busyRef.current = false
         }, MATCH_HIGHLIGHT_MS)
       } else {
@@ -90,7 +90,7 @@ export default function Board() {
         window.setTimeout(() => {
           setGrid((current) => swap(current, a, b))
           setInvalidPair(null)
-          setMessage('Drag an icon onto a neighbor to swap it.')
+          setMessage('Drag an icon onto another to swap it.')
           busyRef.current = false
         }, SWAP_BACK_DELAY_MS)
       }
@@ -120,12 +120,7 @@ export default function Board() {
     const handleUp = () => {
       setDragIndex((currentDrag) => {
         setHoverIndex((currentHover) => {
-          if (
-            currentDrag !== null &&
-            currentHover !== null &&
-            currentHover !== currentDrag &&
-            areAdjacent(currentDrag, currentHover)
-          ) {
+          if (currentDrag !== null && currentHover !== null && currentHover !== currentDrag) {
             attemptSwap(currentDrag, currentHover)
           }
           return null

@@ -29,18 +29,6 @@ export function createInitialGrid(): IconType[] {
   return grid
 }
 
-export function areAdjacent(indexA: number, indexB: number): boolean {
-  const rowA = Math.floor(indexA / GRID_SIZE)
-  const colA = indexA % GRID_SIZE
-  const rowB = Math.floor(indexB / GRID_SIZE)
-  const colB = indexB % GRID_SIZE
-
-  const rowDiff = Math.abs(rowA - rowB)
-  const colDiff = Math.abs(colA - colB)
-
-  return rowDiff + colDiff === 1
-}
-
 // Returns true if the cell at `index` is part of a 3-in-a-row match
 // (checking the full row and full column, since the grid is only 3x3).
 export function hasMatchAt(grid: IconType[], index: number): boolean {
@@ -69,18 +57,37 @@ function hasAnyMatch(grid: IconType[]): boolean {
   return grid.some((_, index) => hasMatchAt(grid, index))
 }
 
-// Replaces the icons at `matchedIndexes` with new random icons so a
-// resolved match doesn't sit in the grid indefinitely, retrying until
-// the refill doesn't create another immediate match on its own.
-export function refillMatched(grid: IconType[], matchedIndexes: number[]): IconType[] {
-  let next = grid
+// Clears matched cells and drops the surviving icons in each column down to
+// fill the gaps, refilling the newly-empty cells at the top with new random
+// icons — like gravity pulling the column down and new tiles falling in.
+// Retries the new-icon choices until they don't create another immediate
+// match on their own.
+export function collapseAndRefill(grid: IconType[], matchedIndexes: number[]): IconType[] {
+  const matchedSet = new Set(matchedIndexes)
+  let next: IconType[]
   let attempts = 0
 
   do {
-    next = [...grid]
-    for (const index of matchedIndexes) {
-      next[index] = randomIcon()
+    next = new Array(GRID_SIZE * GRID_SIZE)
+
+    for (let col = 0; col < GRID_SIZE; col++) {
+      const surviving: IconType[] = []
+      for (let row = 0; row < GRID_SIZE; row++) {
+        const index = row * GRID_SIZE + col
+        if (!matchedSet.has(index)) surviving.push(grid[index])
+      }
+
+      const missing = GRID_SIZE - surviving.length
+      const column = [
+        ...Array.from({ length: missing }, () => randomIcon()),
+        ...surviving,
+      ]
+
+      for (let row = 0; row < GRID_SIZE; row++) {
+        next[row * GRID_SIZE + col] = column[row]
+      }
     }
+
     attempts += 1
   } while (hasAnyMatch(next) && attempts < 200)
 
