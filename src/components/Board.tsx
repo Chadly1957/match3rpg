@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import Icon from './Icon'
-import { collapseAndRefill, createInitialTiles, findMatches, swapTiles, tileIdAt } from '../game/board'
+import {
+  collapseAndRefill,
+  createInitialTiles,
+  findMatches,
+  scoreForMatch,
+  swapTiles,
+  tileIdAt,
+} from '../game/board'
 import { GRID_SIZE, type Tile } from '../game/types'
 
 const SWAP_BACK_DELAY_MS = 350
@@ -18,7 +25,26 @@ function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 }
 
-export default function Board() {
+export interface BoardResult {
+  score: number
+  passed: boolean
+}
+
+interface BoardProps {
+  moveLimit: number
+  goalScore: number
+  onScoreChange?: (score: number) => void
+  onMovesChange?: (movesLeft: number) => void
+  onFinish: (result: BoardResult) => void
+}
+
+export default function Board({
+  moveLimit,
+  goalScore,
+  onScoreChange,
+  onMovesChange,
+  onFinish,
+}: BoardProps) {
   const [tiles, setTiles] = useState<Tile[]>(() => createInitialTiles())
   const [cellSize, setCellSize] = useState(0)
   const [dragTileId, setDragTileId] = useState<number | null>(null)
@@ -34,6 +60,10 @@ export default function Board() {
 
   const dragTileIdRef = useRef<number | null>(null)
   const hoverTileIdRef = useRef<number | null>(null)
+
+  const scoreRef = useRef(0)
+  const movesLeftRef = useRef(moveLimit)
+  const finishedRef = useRef(false)
 
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
@@ -73,14 +103,14 @@ export default function Board() {
 
   const attemptSwap = useCallback(
     async (a: number, b: number) => {
-      if (busyRef.current) return
+      if (busyRef.current || finishedRef.current) return
       busyRef.current = true
 
       applyTiles(swapTiles(tilesRef.current, a, b))
 
       let matches = findMatches(tilesRef.current)
 
-      if (matches.size === 0) {
+      if (matches.ids.size === 0) {
         setInvalidPair([a, b])
         setMessage('No match — swapping back.')
         await sleep(SWAP_BACK_DELAY_MS)
@@ -91,14 +121,22 @@ export default function Board() {
         return
       }
 
+      // A swap that produces a match uses up one of the player's turns.
+      movesLeftRef.current -= 1
+      onMovesChange?.(movesLeftRef.current)
+
       let combo = 0
-      while (matches.size > 0) {
+      while (matches.ids.size > 0) {
         combo += 1
-        setMatchedIds(matches)
+        setMatchedIds(matches.ids)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
+
+        scoreRef.current += scoreForMatch(matches.runCount, combo)
+        onScoreChange?.(scoreRef.current)
+
         await sleep(MATCH_HIGHLIGHT_MS)
 
-        const { spawned, settled } = collapseAndRefill(tilesRef.current, matches)
+        const { spawned, settled } = collapseAndRefill(tilesRef.current, matches.ids)
         // flushSync forces each state update to commit as its own paint —
         // without it React may coalesce the spawn and settle updates into a
         // single commit, and the browser never paints the spawn position,
@@ -115,15 +153,25 @@ export default function Board() {
         matches = findMatches(tilesRef.current)
       }
 
-      setMessage(combo > 1 ? `Chain of ${combo}! ${DEFAULT_MESSAGE}` : DEFAULT_MESSAGE)
+      const reachedGoal = scoreRef.current >= goalScore
+      const outOfMoves = movesLeftRef.current <= 0
+
+      if (reachedGoal || outOfMoves) {
+        finishedRef.current = true
+        setMessage(reachedGoal ? 'Goal reached!' : 'Out of moves.')
+        onFinish({ score: scoreRef.current, passed: reachedGoal })
+      } else {
+        setMessage(combo > 1 ? `Chain of ${combo}! ${DEFAULT_MESSAGE}` : DEFAULT_MESSAGE)
+      }
+
       busyRef.current = false
     },
-    [applyTiles],
+    [applyTiles, goalScore, onFinish, onMovesChange, onScoreChange],
   )
 
   const handlePointerDown = useCallback(
     (tileId: number) => (event: React.PointerEvent<HTMLDivElement>) => {
-      if (busyRef.current) return
+      if (busyRef.current || finishedRef.current) return
       event.preventDefault()
       dragTileIdRef.current = tileId
       hoverTileIdRef.current = tileId
@@ -175,7 +223,6 @@ export default function Board() {
 
   return (
     <div className="game">
-      <h1 className="title">Match 3</h1>
       <p className="message">{message}</p>
       <div
         className="board"

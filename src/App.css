@@ -1,9 +1,18 @@
-.game {
+.screen {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
   padding: 24px;
+  width: 100%;
+  max-width: 480px;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
   touch-action: none;
 }
 
@@ -118,6 +127,206 @@
 
 .icon-circle {
   color: var(--circle);
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--bg);
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.96);
+}
+
+.btn--ghost {
+  color: var(--text);
+  background: var(--cell-bg);
+}
+
+.level-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.level-header .title {
+  font-size: 24px;
+  flex: 1;
+  text-align: center;
+}
+
+.hud {
+  display: flex;
+  gap: 24px;
+  background: var(--board-bg);
+  border-radius: 14px;
+  padding: 12px 24px;
+}
+
+.hud-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.hud-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.hud-goal {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.board-wrap {
+  position: relative;
+}
+
+.level-result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(20, 12, 36, 0.92);
+  border-radius: 20px;
+  text-align: center;
+  padding: 24px;
+}
+
+.level-result h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.level-result p {
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.level-result-hint {
+  font-size: 14px;
+}
+
+.level-result-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.map {
+  position: relative;
+  width: min(86vw, 360px);
+  height: 480px;
+}
+
+.map-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.map-line {
+  stroke: var(--locked);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.map-line--active {
+  stroke: var(--match);
+}
+
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-areas: 'circle' 'label' 'score';
+  justify-items: center;
+  gap: 4px;
+  width: 76px;
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.node-number,
+.node-icon {
+  grid-area: circle;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  border: 3px solid var(--locked);
+  background: var(--cell-bg);
+  box-sizing: border-box;
+}
+
+.node-icon {
+  padding: 16px;
+  color: var(--text-dim);
+}
+
+.node-label {
+  grid-area: label;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.node-score {
+  grid-area: score;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.node--unlocked .node-number {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.node--completed .node-icon {
+  border-color: var(--match);
+  color: var(--match);
+}
+
+.node--locked {
+  cursor: default;
+}
+
+.node--locked .node-label {
+  opacity: 0.6;
 }
 
 .dragged-icon {

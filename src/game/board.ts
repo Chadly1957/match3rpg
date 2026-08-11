@@ -57,16 +57,25 @@ export function swapTiles(tiles: Tile[], idA: number, idB: number): Tile[] {
   })
 }
 
+export interface MatchResult {
+  ids: Set<number>
+  // Number of distinct 3-in-a-row runs found (a swap can complete two runs
+  // at once — one through each swapped tile — and each counts separately
+  // for scoring, even though the matched cell sets can overlap).
+  runCount: number
+}
+
 // Scans the whole board for every run of 3+ equal icons, horizontal and
-// vertical, and returns the set of matched tile ids. Multiple simultaneous
-// matches all get flagged in one pass.
-export function findMatches(tiles: Tile[]): Set<number> {
+// vertical, and returns the matched tile ids plus how many separate runs
+// were found. Multiple simultaneous matches all get flagged in one pass.
+export function findMatches(tiles: Tile[]): MatchResult {
   const grid: (Tile | undefined)[] = new Array(GRID_SIZE * GRID_SIZE)
   for (const tile of tiles) {
     grid[tile.row * GRID_SIZE + tile.col] = tile
   }
 
-  const matched = new Set<number>()
+  const ids = new Set<number>()
+  let runCount = 0
 
   for (let row = 0; row < GRID_SIZE; row++) {
     let runStart = 0
@@ -75,9 +84,10 @@ export function findMatches(tiles: Tile[]): Set<number> {
       const curr = col < GRID_SIZE ? grid[row * GRID_SIZE + col]?.type : undefined
       if (curr !== prev) {
         if (col - runStart >= 3) {
+          runCount += 1
           for (let c = runStart; c < col; c++) {
             const tile = grid[row * GRID_SIZE + c]
-            if (tile) matched.add(tile.id)
+            if (tile) ids.add(tile.id)
           }
         }
         runStart = col
@@ -92,9 +102,10 @@ export function findMatches(tiles: Tile[]): Set<number> {
       const curr = row < GRID_SIZE ? grid[row * GRID_SIZE + col]?.type : undefined
       if (curr !== prev) {
         if (row - runStart >= 3) {
+          runCount += 1
           for (let r = runStart; r < row; r++) {
             const tile = grid[r * GRID_SIZE + col]
-            if (tile) matched.add(tile.id)
+            if (tile) ids.add(tile.id)
           }
         }
         runStart = row
@@ -102,7 +113,16 @@ export function findMatches(tiles: Tile[]): Set<number> {
     }
   }
 
-  return matched
+  return { ids, runCount }
+}
+
+const POINTS_PER_RUN = 30
+
+// Chain reactions are worth progressively more: each cascade step (combo)
+// multiplies the base points, matching the "chains matter" feel of the
+// eventual RPG scoring system.
+export function scoreForMatch(runCount: number, combo: number): number {
+  return runCount * POINTS_PER_RUN * combo
 }
 
 // Drops surviving tiles down to fill the gaps left by matched tiles, and

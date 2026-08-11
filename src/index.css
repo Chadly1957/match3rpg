@@ -9,6 +9,8 @@
   --circle: #ff6b81;
   --match: #4ade80;
   --invalid: #f87171;
+  --locked: #453a63;
+  --accent: #ffd23f;
 
   font: 18px/145% system-ui, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
@@ -33,6 +35,6 @@ body {
 #root {
   min-height: 100svh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
 }
