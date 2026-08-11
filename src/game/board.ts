@@ -29,20 +29,43 @@ export function createInitialGrid(): IconType[] {
   return grid
 }
 
-// Returns true if the cell at `index` is part of a 3-in-a-row match
-// (checking the full row and full column, since the grid is only 3x3).
-export function hasMatchAt(grid: IconType[], index: number): boolean {
-  const row = Math.floor(index / GRID_SIZE)
-  const col = index % GRID_SIZE
+// Scans the whole board for every run of 3+ equal icons, horizontal and
+// vertical, and returns the union of matched cell indexes. Multiple
+// simultaneous matches all get flagged in one pass.
+export function findMatches(grid: IconType[]): Set<number> {
+  const matched = new Set<number>()
 
-  const rowStart = row * GRID_SIZE
-  const rowMatch =
-    grid[rowStart] === grid[rowStart + 1] && grid[rowStart + 1] === grid[rowStart + 2]
+  // Horizontal runs
+  for (let row = 0; row < GRID_SIZE; row++) {
+    let runStart = 0
+    for (let col = 1; col <= GRID_SIZE; col++) {
+      const prev = grid[row * GRID_SIZE + (col - 1)]
+      const curr = col < GRID_SIZE ? grid[row * GRID_SIZE + col] : undefined
+      if (curr !== prev) {
+        if (col - runStart >= 3) {
+          for (let c = runStart; c < col; c++) matched.add(row * GRID_SIZE + c)
+        }
+        runStart = col
+      }
+    }
+  }
 
-  const colMatch =
-    grid[col] === grid[col + GRID_SIZE] && grid[col + GRID_SIZE] === grid[col + GRID_SIZE * 2]
+  // Vertical runs
+  for (let col = 0; col < GRID_SIZE; col++) {
+    let runStart = 0
+    for (let row = 1; row <= GRID_SIZE; row++) {
+      const prev = grid[(row - 1) * GRID_SIZE + col]
+      const curr = row < GRID_SIZE ? grid[row * GRID_SIZE + col] : undefined
+      if (curr !== prev) {
+        if (row - runStart >= 3) {
+          for (let r = runStart; r < row; r++) matched.add(r * GRID_SIZE + col)
+        }
+        runStart = row
+      }
+    }
+  }
 
-  return rowMatch || colMatch
+  return matched
 }
 
 export function swap(grid: IconType[], indexA: number, indexB: number): IconType[] {
@@ -53,43 +76,29 @@ export function swap(grid: IconType[], indexA: number, indexB: number): IconType
   return next
 }
 
-function hasAnyMatch(grid: IconType[]): boolean {
-  return grid.some((_, index) => hasMatchAt(grid, index))
-}
-
 // Clears matched cells and drops the surviving icons in each column down to
 // fill the gaps, refilling the newly-empty cells at the top with new random
 // icons — like gravity pulling the column down and new tiles falling in.
-// Retries the new-icon choices until they don't create another immediate
-// match on their own.
-export function collapseAndRefill(grid: IconType[], matchedIndexes: number[]): IconType[] {
+// Deliberately does NOT avoid creating new matches: cascades formed by the
+// falling icons are a feature, resolved as chained combos by the caller.
+export function collapseAndRefill(grid: IconType[], matchedIndexes: Iterable<number>): IconType[] {
   const matchedSet = new Set(matchedIndexes)
-  let next: IconType[]
-  let attempts = 0
+  const next: IconType[] = new Array(GRID_SIZE * GRID_SIZE)
 
-  do {
-    next = new Array(GRID_SIZE * GRID_SIZE)
-
-    for (let col = 0; col < GRID_SIZE; col++) {
-      const surviving: IconType[] = []
-      for (let row = 0; row < GRID_SIZE; row++) {
-        const index = row * GRID_SIZE + col
-        if (!matchedSet.has(index)) surviving.push(grid[index])
-      }
-
-      const missing = GRID_SIZE - surviving.length
-      const column = [
-        ...Array.from({ length: missing }, () => randomIcon()),
-        ...surviving,
-      ]
-
-      for (let row = 0; row < GRID_SIZE; row++) {
-        next[row * GRID_SIZE + col] = column[row]
-      }
+  for (let col = 0; col < GRID_SIZE; col++) {
+    const surviving: IconType[] = []
+    for (let row = 0; row < GRID_SIZE; row++) {
+      const index = row * GRID_SIZE + col
+      if (!matchedSet.has(index)) surviving.push(grid[index])
     }
 
-    attempts += 1
-  } while (hasAnyMatch(next) && attempts < 200)
+    const missing = GRID_SIZE - surviving.length
+    const column = [...Array.from({ length: missing }, () => randomIcon()), ...surviving]
+
+    for (let row = 0; row < GRID_SIZE; row++) {
+      next[row * GRID_SIZE + col] = column[row]
+    }
+  }
 
   return next
 }

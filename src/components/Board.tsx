@@ -1,32 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
-import { collapseAndRefill, createInitialGrid, hasMatchAt, swap } from '../game/board'
+import { collapseAndRefill, createInitialGrid, findMatches, swap } from '../game/board'
 import { GRID_SIZE, type IconType } from '../game/types'
 
 const SWAP_BACK_DELAY_MS = 350
-const MATCH_HIGHLIGHT_MS = 600
+const MATCH_HIGHLIGHT_MS = 500
+const CASCADE_PAUSE_MS = 200
 
-function matchedLineIndexes(grid: IconType[], index: number): number[] {
-  const row = Math.floor(index / GRID_SIZE)
-  const col = index % GRID_SIZE
-  const rowStart = row * GRID_SIZE
-  const matched: number[] = []
+const DEFAULT_MESSAGE = 'Drag an icon onto another to swap it.'
 
-  if (
-    grid[rowStart] === grid[rowStart + 1] &&
-    grid[rowStart + 1] === grid[rowStart + 2]
-  ) {
-    matched.push(rowStart, rowStart + 1, rowStart + 2)
-  }
-
-  if (
-    grid[col] === grid[col + GRID_SIZE] &&
-    grid[col + GRID_SIZE] === grid[col + GRID_SIZE * 2]
-  ) {
-    matched.push(col, col + GRID_SIZE, col + GRID_SIZE * 2)
-  }
-
-  return matched
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
 
 export default function Board() {
@@ -36,10 +20,27 @@ export default function Board() {
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null)
   const [invalidPair, setInvalidPair] = useState<[number, number] | null>(null)
   const [matchedCells, setMatchedCells] = useState<number[]>([])
-  const [message, setMessage] = useState('Drag an icon onto another to swap it.')
+  const [message, setMessage] = useState(DEFAULT_MESSAGE)
+
+  // The grid the game logic reads. Kept in a ref alongside the state so
+  // event handlers and the async cascade loop always see the live value
+  // without stale-closure hazards.
+  const gridRef = useRef(grid)
+
+  // Drag state lives in refs so pointerup can act on it directly — calling
+  // game logic from inside setState updaters is unsafe (React can invoke
+  // updaters more than once, which double-fired swaps and corrupted the
+  // board).
+  const dragIndexRef = useRef<number | null>(null)
+  const hoverIndexRef = useRef<number | null>(null)
 
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
+
+  const applyGrid = useCallback((next: IconType[]) => {
+    gridRef.current = next
+    setGrid(next)
+  }, [])
 
   // Resolves a client-space point directly to a grid cell via math against
   // the board's bounding rect, instead of DOM hit-testing. elementFromPoint
@@ -61,47 +62,56 @@ export default function Board() {
   }, [])
 
   const attemptSwap = useCallback(
-    (a: number, b: number) => {
-      const swapped = swap(grid, a, b)
-      const matchAtA = hasMatchAt(swapped, a)
-      const matchAtB = hasMatchAt(swapped, b)
-
-      setGrid(swapped)
+    async (a: number, b: number) => {
+      if (busyRef.current) return
       busyRef.current = true
 
-      if (matchAtA || matchAtB) {
-        const matched = new Set<number>([
-          ...matchedLineIndexes(swapped, a),
-          ...matchedLineIndexes(swapped, b),
-        ])
+      let current = swap(gridRef.current, a, b)
+      applyGrid(current)
 
-        const matchedList = Array.from(matched)
-        setMatchedCells(matchedList)
-        setMessage('Match found!')
-        window.setTimeout(() => {
-          setGrid((current) => collapseAndRefill(current, matchedList))
-          setMatchedCells([])
-          setMessage('Drag an icon onto another to swap it.')
-          busyRef.current = false
-        }, MATCH_HIGHLIGHT_MS)
-      } else {
+      let matches = findMatches(current)
+
+      if (matches.size === 0) {
+        // Invalid move: shake, then swap back.
         setInvalidPair([a, b])
         setMessage('No match — swapping back.')
-        window.setTimeout(() => {
-          setGrid((current) => swap(current, a, b))
-          setInvalidPair(null)
-          setMessage('Drag an icon onto another to swap it.')
-          busyRef.current = false
-        }, SWAP_BACK_DELAY_MS)
+        await sleep(SWAP_BACK_DELAY_MS)
+        applyGrid(swap(gridRef.current, a, b))
+        setInvalidPair(null)
+        setMessage(DEFAULT_MESSAGE)
+        busyRef.current = false
+        return
       }
+
+      // Resolve the match, then keep resolving any cascades the falling
+      // icons create. Each loop iteration is one combo in the chain.
+      let combo = 0
+      while (matches.size > 0) {
+        combo += 1
+        setMatchedCells(Array.from(matches))
+        setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
+        await sleep(MATCH_HIGHLIGHT_MS)
+
+        current = collapseAndRefill(current, matches)
+        applyGrid(current)
+        setMatchedCells([])
+        await sleep(CASCADE_PAUSE_MS)
+
+        matches = findMatches(current)
+      }
+
+      setMessage(combo > 1 ? `Chain of ${combo}! ${DEFAULT_MESSAGE}` : DEFAULT_MESSAGE)
+      busyRef.current = false
     },
-    [grid],
+    [applyGrid],
   )
 
   const handlePointerDown = useCallback(
     (index: number) => (event: React.PointerEvent<HTMLDivElement>) => {
       if (busyRef.current) return
       event.preventDefault()
+      dragIndexRef.current = index
+      hoverIndexRef.current = index
       setDragIndex(index)
       setHoverIndex(index)
       setDragPos({ x: event.clientX, y: event.clientY })
@@ -114,20 +124,24 @@ export default function Board() {
 
     const handleMove = (event: PointerEvent) => {
       setDragPos({ x: event.clientX, y: event.clientY })
-      setHoverIndex(cellFromPoint(event.clientX, event.clientY))
+      const cell = cellFromPoint(event.clientX, event.clientY)
+      hoverIndexRef.current = cell
+      setHoverIndex(cell)
     }
 
     const handleUp = () => {
-      setDragIndex((currentDrag) => {
-        setHoverIndex((currentHover) => {
-          if (currentDrag !== null && currentHover !== null && currentHover !== currentDrag) {
-            attemptSwap(currentDrag, currentHover)
-          }
-          return null
-        })
-        return null
-      })
+      const a = dragIndexRef.current
+      const b = hoverIndexRef.current
+
+      dragIndexRef.current = null
+      hoverIndexRef.current = null
+      setDragIndex(null)
+      setHoverIndex(null)
       setDragPos(null)
+
+      if (a !== null && b !== null && a !== b) {
+        void attemptSwap(a, b)
+      }
     }
 
     window.addEventListener('pointermove', handleMove)
