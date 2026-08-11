@@ -41,6 +41,25 @@ export default function Board() {
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
 
+  // Resolves a client-space point directly to a grid cell via math against
+  // the board's bounding rect, instead of DOM hit-testing. elementFromPoint
+  // would miss drops landing in the gap between cells (dead board
+  // background between grid cells) and silently fail to register a swap.
+  // Dividing the whole board rect into thirds means every pixel maps to a
+  // cell — no dead zones.
+  const cellFromPoint = useCallback((clientX: number, clientY: number): number | null => {
+    const rect = boardRef.current?.getBoundingClientRect()
+    if (!rect) return null
+
+    const localX = clientX - rect.left
+    const localY = clientY - rect.top
+    if (localX < 0 || localY < 0 || localX >= rect.width || localY >= rect.height) return null
+
+    const col = Math.min(GRID_SIZE - 1, Math.floor((localX / rect.width) * GRID_SIZE))
+    const row = Math.min(GRID_SIZE - 1, Math.floor((localY / rect.height) * GRID_SIZE))
+    return row * GRID_SIZE + col
+  }, [])
+
   const attemptSwap = useCallback(
     (a: number, b: number) => {
       const swapped = swap(grid, a, b)
@@ -95,10 +114,7 @@ export default function Board() {
 
     const handleMove = (event: PointerEvent) => {
       setDragPos({ x: event.clientX, y: event.clientY })
-
-      const el = document.elementFromPoint(event.clientX, event.clientY)
-      const cell = el?.closest<HTMLElement>('[data-cell-index]')
-      setHoverIndex(cell ? Number(cell.dataset.cellIndex) : null)
+      setHoverIndex(cellFromPoint(event.clientX, event.clientY))
     }
 
     const handleUp = () => {
@@ -128,7 +144,7 @@ export default function Board() {
       window.removeEventListener('pointerup', handleUp)
       window.removeEventListener('pointercancel', handleUp)
     }
-  }, [dragIndex, attemptSwap])
+  }, [dragIndex, attemptSwap, cellFromPoint])
 
   const draggedIcon = dragIndex !== null ? grid[dragIndex] : null
 
