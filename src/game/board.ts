@@ -64,3 +64,25 @@ export function swap(grid: IconType[], indexA: number, indexB: number): IconType
   next[indexB] = temp
   return next
 }
+
+function hasAnyMatch(grid: IconType[]): boolean {
+  return grid.some((_, index) => hasMatchAt(grid, index))
+}
+
+// Replaces the icons at `matchedIndexes` with new random icons so a
+// resolved match doesn't sit in the grid indefinitely, retrying until
+// the refill doesn't create another immediate match on its own.
+export function refillMatched(grid: IconType[], matchedIndexes: number[]): IconType[] {
+  let next = grid
+  let attempts = 0
+
+  do {
+    next = [...grid]
+    for (const index of matchedIndexes) {
+      next[index] = randomIcon()
+    }
+    attempts += 1
+  } while (hasAnyMatch(next) && attempts < 200)
+
+  return next
+}

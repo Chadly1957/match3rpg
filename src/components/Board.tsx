@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
-import { areAdjacent, createInitialGrid, hasMatchAt, swap } from '../game/board'
+import { areAdjacent, createInitialGrid, hasMatchAt, refillMatched, swap } from '../game/board'
 import { GRID_SIZE, type IconType } from '../game/types'
 
 const SWAP_BACK_DELAY_MS = 350
@@ -56,9 +56,11 @@ export default function Board() {
           ...matchedLineIndexes(swapped, b),
         ])
 
-        setMatchedCells(Array.from(matched))
+        const matchedList = Array.from(matched)
+        setMatchedCells(matchedList)
         setMessage('Match found!')
         window.setTimeout(() => {
+          setGrid((current) => refillMatched(current, matchedList))
           setMatchedCells([])
           setMessage('Drag an icon onto a neighbor to swap it.')
           busyRef.current = false
