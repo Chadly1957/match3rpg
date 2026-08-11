@@ -156,12 +156,17 @@ export default function Board({
       const reachedGoal = scoreRef.current >= goalScore
       const outOfMoves = movesLeftRef.current <= 0
 
-      if (reachedGoal || outOfMoves) {
+      // The round always plays out the full move limit — reaching the goal
+      // early doesn't end it, since every extra match past the goal still
+      // adds to the score (and the XP the player earns from it).
+      if (outOfMoves) {
         finishedRef.current = true
         setMessage(reachedGoal ? 'Goal reached!' : 'Out of moves.')
         onFinish({ score: scoreRef.current, passed: reachedGoal })
       } else {
-        setMessage(combo > 1 ? `Chain of ${combo}! ${DEFAULT_MESSAGE}` : DEFAULT_MESSAGE)
+        const comboText = combo > 1 ? `Chain of ${combo}! ` : ''
+        const goalText = reachedGoal ? 'Goal reached! Keep going for bonus score! ' : ''
+        setMessage(`${comboText}${goalText}${DEFAULT_MESSAGE}`)
       }
 
       busyRef.current = false

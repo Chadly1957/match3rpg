@@ -231,10 +231,55 @@
   font-size: 14px;
 }
 
+.level-result-xp {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 18px;
+}
+
 .level-result-actions {
   display: flex;
   gap: 12px;
   margin-top: 12px;
+}
+
+.hud-value--goal {
+  color: var(--accent);
+}
+
+.xp-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(86vw, 360px);
+}
+
+.xp-bar-level {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.xp-bar-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--cell-bg);
+  overflow: hidden;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.xp-bar-text {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .map {

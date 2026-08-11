@@ -1,10 +1,6 @@
-// Placeholder player-progression hooks. Once the leveling system and skill
-// tree exist, getPlayerLevel() should read real player state and
-// getMoveLimit() should factor in skill-tree bonuses.
-export function getPlayerLevel(): number {
-  return 1
-}
-
+// Move limit is kept separate from level design (see levels.ts) so a future
+// skill tree can grant bonus turns per player level without editing level
+// data. Flat 5 for now — tune once the skill tree exists.
 export function getMoveLimit(_playerLevel: number): number {
   return 5
 }

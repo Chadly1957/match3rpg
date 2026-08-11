@@ -1,8 +1,11 @@
+import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { isLevelUnlocked, type Progress } from '../game/progress'
+import type { PlayerXpState } from '../game/playerProgress'
 
 interface OverworldProps {
   progress: Progress
+  playerXp: PlayerXpState
   onSelectLevel: (levelId: number) => void
 }
 
@@ -37,10 +40,11 @@ function CheckIcon() {
   )
 }
 
-export default function Overworld({ progress, onSelectLevel }: OverworldProps) {
+export default function Overworld({ progress, playerXp, onSelectLevel }: OverworldProps) {
   return (
     <div className="screen">
       <h1 className="title">Overworld</h1>
+      <XpBar xpState={playerXp} />
       <p className="message">Clear a level's goal score to unlock the next.</p>
 
       <div className="map">

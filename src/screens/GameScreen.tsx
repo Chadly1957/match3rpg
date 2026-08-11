@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import Board, { type BoardResult } from '../components/Board'
+import XpBar from '../components/XpBar'
 import { getLevel } from '../game/levels'
-import { getMoveLimit, getPlayerLevel } from '../game/player'
+import { getMoveLimit } from '../game/player'
+import type { PlayerXpState } from '../game/playerProgress'
 
 interface GameScreenProps {
   levelId: number
+  playerXp: PlayerXpState
   onExit: () => void
   onLevelResult: (levelId: number, score: number, passed: boolean) => void
 }
 
-export default function GameScreen({ levelId, onExit, onLevelResult }: GameScreenProps) {
+export default function GameScreen({ levelId, playerXp, onExit, onLevelResult }: GameScreenProps) {
   const level = getLevel(levelId)
-  const moveLimit = getMoveLimit(getPlayerLevel())
+  const moveLimit = getMoveLimit(playerXp.level)
 
   const [attempt, setAttempt] = useState(0)
   const [score, setScore] = useState(0)
@@ -28,6 +31,8 @@ export default function GameScreen({ levelId, onExit, onLevelResult }: GameScree
       </div>
     )
   }
+
+  const goalReached = score >= level.goalScore
 
   const handleFinish = (boardResult: BoardResult) => {
     setResult(boardResult)
@@ -53,7 +58,7 @@ export default function GameScreen({ levelId, onExit, onLevelResult }: GameScree
       <div className="hud">
         <div className="hud-stat">
           <span className="hud-label">Score</span>
-          <span className="hud-value">
+          <span className={goalReached ? 'hud-value hud-value--goal' : 'hud-value'}>
             {score} <span className="hud-goal">/ {level.goalScore}</span>
           </span>
         </div>
@@ -79,7 +84,14 @@ export default function GameScreen({ levelId, onExit, onLevelResult }: GameScree
             <p>
               Final score: {result.score} / {level.goalScore}
             </p>
-            {!result.passed && <p className="level-result-hint">Give it another shot.</p>}
+            {result.passed ? (
+              <>
+                <p className="level-result-xp">+{result.score} XP</p>
+                <XpBar xpState={playerXp} />
+              </>
+            ) : (
+              <p className="level-result-hint">Give it another shot.</p>
+            )}
             <div className="level-result-actions">
               <button type="button" className="btn" onClick={handleRetry}>
                 Retry
