@@ -1,0 +1,119 @@
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  touch-action: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.message {
+  min-height: 24px;
+  color: var(--text-dim);
+  font-size: 15px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, min(26vw, 110px));
+  grid-template-rows: repeat(3, min(26vw, 110px));
+  gap: 10px;
+  padding: 10px;
+  background: var(--board-bg);
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cell-bg);
+  border-radius: 14px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.cell--dragging {
+  opacity: 0.25;
+}
+
+.cell--hover {
+  box-shadow: inset 0 0 0 3px var(--text);
+  background: color-mix(in srgb, var(--cell-bg) 70%, white 10%);
+}
+
+.cell--matched {
+  animation: pulse-match 0.6s ease;
+}
+
+.cell--invalid {
+  animation: shake 0.35s ease;
+}
+
+@keyframes pulse-match {
+  0% {
+    box-shadow: inset 0 0 0 0 var(--match);
+  }
+  30% {
+    box-shadow: inset 0 0 0 4px var(--match);
+    background: color-mix(in srgb, var(--match) 30%, var(--cell-bg));
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 var(--match);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+.icon-svg {
+  width: 60%;
+  height: 60%;
+  pointer-events: none;
+}
+
+.icon-star {
+  color: var(--star);
+}
+
+.icon-square {
+  color: var(--square);
+}
+
+.icon-circle {
+  color: var(--circle);
+}
+
+.dragged-icon {
+  position: fixed;
+  width: min(26vw, 110px);
+  height: min(26vw, 110px);
+  transform: translate(-50%, -50%) scale(1.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
+  z-index: 10;
+}
