@@ -283,7 +283,6 @@
 .map {
   position: relative;
   width: min(86vw, 360px);
-  height: 480px;
 }
 
 .map-lines {

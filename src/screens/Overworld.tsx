@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { isLevelUnlocked, type Progress } from '../game/progress'
@@ -12,13 +13,23 @@ interface OverworldProps {
   onOpenSkillTree: () => void
 }
 
-// Bottom-to-top winding path positions, in percent of the map container.
-const NODE_POSITIONS: Record<number, { x: number; y: number }> = {
-  1: { x: 30, y: 88 },
-  2: { x: 70, y: 68 },
-  3: { x: 30, y: 48 },
-  4: { x: 70, y: 28 },
-  5: { x: 50, y: 8 },
+// Bottom-to-top winding path: level 1 at the bottom, highest level at the
+// top, alternating left/right so the line zig-zags instead of running
+// straight up. Positions are percentages of the map container, so this
+// scales to however many levels LEVELS ends up with.
+const NODE_SPACING_PX = 110
+const NODE_TOP_PADDING_PX = 60
+const NODE_BOTTOM_PADDING_PX = 60
+
+function getMapHeight(levelCount: number): number {
+  return NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - 1) + NODE_BOTTOM_PADDING_PX
+}
+
+function getNodePosition(id: number, levelCount: number): { x: number; y: number } {
+  const mapHeight = getMapHeight(levelCount)
+  const yPx = NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - id)
+  const x = id % 2 === 1 ? 30 : 70
+  return { x, y: (yPx / mapHeight) * 100 }
 }
 
 function LockIcon() {
@@ -51,6 +62,15 @@ export default function Overworld({
   onOpenSkillTree,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
+  const currentNodeRef = useRef<HTMLButtonElement>(null)
+
+  // With up to 20 levels the map is taller than the viewport — jump to the
+  // player's current level on load instead of always starting at level 1.
+  useEffect(() => {
+    currentNodeRef.current?.scrollIntoView({ block: 'center' })
+  }, [])
+
+  const mapHeight = getMapHeight(LEVELS.length)
 
   return (
     <div className="screen">
@@ -64,11 +84,11 @@ export default function Overworld({
 
       <p className="message">Clear a level's goal score to unlock the next.</p>
 
-      <div className="map">
+      <div className="map" style={{ height: mapHeight }}>
         <svg className="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {LEVELS.slice(0, -1).map((level, i) => {
-            const from = NODE_POSITIONS[level.id]
-            const to = NODE_POSITIONS[LEVELS[i + 1].id]
+            const from = getNodePosition(level.id, LEVELS.length)
+            const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length)
             const active = level.id < progress.unlockedLevel
             return (
               <line
@@ -85,9 +105,10 @@ export default function Overworld({
         </svg>
 
         {LEVELS.map((level) => {
-          const pos = NODE_POSITIONS[level.id]
+          const pos = getNodePosition(level.id, LEVELS.length)
           const unlocked = isLevelUnlocked(progress, level.id)
           const completed = level.id < progress.unlockedLevel
+          const isCurrent = level.id === progress.unlockedLevel
           const bestScore = progress.bestScores[level.id]
 
           const status = completed ? 'completed' : unlocked ? 'unlocked' : 'locked'
@@ -95,6 +116,7 @@ export default function Overworld({
           return (
             <button
               key={level.id}
+              ref={isCurrent ? currentNodeRef : undefined}
               type="button"
               className={`node node--${status}`}
               style={{ left: `${pos.x}%`, top: `${pos.y}%` }}

@@ -4,16 +4,32 @@ export interface LevelDef {
   goalScore: number
 }
 
-// Goal scores ramp up per level. Move limit isn't baked in here — it comes
-// from the player's level (see player.ts) so a future leveling/skill-tree
-// system can grant more turns without touching level design.
-export const LEVELS: LevelDef[] = [
-  { id: 1, name: 'Level 1', goalScore: 300 },
-  { id: 2, name: 'Level 2', goalScore: 600 },
-  { id: 3, name: 'Level 3', goalScore: 1000 },
-  { id: 4, name: 'Level 4', goalScore: 1500 },
-  { id: 5, name: 'Level 5', goalScore: 2200 },
-]
+// The first 5 goal scores are hand-picked for an early, gentle ramp. Beyond
+// that, scores compound by GOAL_GROWTH per level — levels are meant to keep
+// scaling indefinitely as players sink skill points into moves/grid size,
+// so a fixed formula is easier to extend than hand-tuning every entry.
+const HAND_TUNED_GOALS = [300, 600, 1000, 1500, 2200]
+const GOAL_GROWTH = 1.5
+const LEVEL_COUNT = 20
+const ROUND_TO = 50
+
+function roundToNearest(value: number, step: number): number {
+  return Math.round(value / step) * step
+}
+
+function goalScoreForLevel(id: number): number {
+  const handTuned = HAND_TUNED_GOALS[id - 1]
+  if (handTuned !== undefined) return handTuned
+
+  const lastHandTuned = HAND_TUNED_GOALS[HAND_TUNED_GOALS.length - 1]
+  const stepsPast = id - HAND_TUNED_GOALS.length
+  return roundToNearest(lastHandTuned * GOAL_GROWTH ** stepsPast, ROUND_TO)
+}
+
+export const LEVELS: LevelDef[] = Array.from({ length: LEVEL_COUNT }, (_, i) => {
+  const id = i + 1
+  return { id, name: `Level ${id}`, goalScore: goalScoreForLevel(id) }
+})
 
 export function getLevel(id: number): LevelDef | undefined {
   return LEVELS.find((level) => level.id === id)
