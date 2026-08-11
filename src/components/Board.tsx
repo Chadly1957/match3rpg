@@ -9,11 +9,14 @@ import {
   swapTiles,
   tileIdAt,
 } from '../game/board'
-import { GRID_SIZE, type Tile } from '../game/types'
+import type { BoardSize, Tile } from '../game/types'
 
 const SWAP_BACK_DELAY_MS = 350
 const MATCH_HIGHLIGHT_MS = 500
 const FALL_DELAY_MS = 350
+
+const MAX_CELL_PX = 100
+const MIN_CELL_PX = 28
 
 const DEFAULT_MESSAGE = 'Drag an icon onto another to swap it.'
 
@@ -30,7 +33,7 @@ export interface BoardResult {
   passed: boolean
 }
 
-interface BoardProps {
+interface BoardProps extends BoardSize {
   moveLimit: number
   goalScore: number
   onScoreChange?: (score: number) => void
@@ -39,13 +42,15 @@ interface BoardProps {
 }
 
 export default function Board({
+  rows,
+  cols,
   moveLimit,
   goalScore,
   onScoreChange,
   onMovesChange,
   onFinish,
 }: BoardProps) {
-  const [tiles, setTiles] = useState<Tile[]>(() => createInitialTiles())
+  const [tiles, setTiles] = useState<Tile[]>(() => createInitialTiles({ rows, cols }))
   const [cellSize, setCellSize] = useState(0)
   const [dragTileId, setDragTileId] = useState<number | null>(null)
   const [hoverTileId, setHoverTileId] = useState<number | null>(null)
@@ -73,17 +78,22 @@ export default function Board({
     setTiles(next)
   }, [])
 
+  // The board's pixel size is derived (not measured): bigger boards need
+  // smaller cells to fit the same footprint, so cell size is computed from
+  // the viewport and row/col count rather than from the board's own
+  // rendered size.
   useLayoutEffect(() => {
-    const el = boardRef.current
-    if (!el) return
+    const compute = () => {
+      const availableWidth = Math.min(window.innerWidth * 0.92, 480)
+      const availableHeight = Math.min(window.innerHeight * 0.55, 480)
+      const size = Math.min(MAX_CELL_PX, availableWidth / cols, availableHeight / rows)
+      setCellSize(Math.max(MIN_CELL_PX, size))
+    }
 
-    const update = () => setCellSize(el.getBoundingClientRect().width / GRID_SIZE)
-    update()
-
-    const observer = new ResizeObserver(update)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+    compute()
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
+  }, [rows, cols])
 
   const cellFromPoint = useCallback(
     (clientX: number, clientY: number): { row: number; col: number } | null => {
@@ -94,11 +104,11 @@ export default function Board({
       const localY = clientY - rect.top
       if (localX < 0 || localY < 0 || localX >= rect.width || localY >= rect.height) return null
 
-      const col = Math.min(GRID_SIZE - 1, Math.floor((localX / rect.width) * GRID_SIZE))
-      const row = Math.min(GRID_SIZE - 1, Math.floor((localY / rect.height) * GRID_SIZE))
+      const col = Math.min(cols - 1, Math.floor((localX / rect.width) * cols))
+      const row = Math.min(rows - 1, Math.floor((localY / rect.height) * rows))
       return { row, col }
     },
-    [],
+    [rows, cols],
   )
 
   const attemptSwap = useCallback(
@@ -108,7 +118,7 @@ export default function Board({
 
       applyTiles(swapTiles(tilesRef.current, a, b))
 
-      let matches = findMatches(tilesRef.current)
+      let matches = findMatches(tilesRef.current, { rows, cols })
 
       if (matches.ids.size === 0) {
         setInvalidPair([a, b])
@@ -131,12 +141,12 @@ export default function Board({
         setMatchedIds(matches.ids)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
 
-        scoreRef.current += scoreForMatch(matches.runCount, combo)
+        scoreRef.current += scoreForMatch(matches.runLengths, combo)
         onScoreChange?.(scoreRef.current)
 
         await sleep(MATCH_HIGHLIGHT_MS)
 
-        const { spawned, settled } = collapseAndRefill(tilesRef.current, matches.ids)
+        const { spawned, settled } = collapseAndRefill(tilesRef.current, matches.ids, { rows, cols })
         // flushSync forces each state update to commit as its own paint —
         // without it React may coalesce the spawn and settle updates into a
         // single commit, and the browser never paints the spawn position,
@@ -150,7 +160,7 @@ export default function Board({
         flushSync(() => applyTiles(settled))
         await sleep(FALL_DELAY_MS)
 
-        matches = findMatches(tilesRef.current)
+        matches = findMatches(tilesRef.current, { rows, cols })
       }
 
       const reachedGoal = scoreRef.current >= goalScore
@@ -171,7 +181,7 @@ export default function Board({
 
       busyRef.current = false
     },
-    [applyTiles, goalScore, onFinish, onMovesChange, onScoreChange],
+    [applyTiles, goalScore, onFinish, onMovesChange, onScoreChange, rows, cols],
   )
 
   const handlePointerDown = useCallback(
@@ -234,7 +244,13 @@ export default function Board({
         ref={boardRef}
         role="grid"
         aria-label="Match 3 board"
-        style={{ '--cell-size': `${cellSize}px` } as React.CSSProperties}
+        style={
+          {
+            '--cell-size': `${cellSize}px`,
+            width: cellSize * cols,
+            height: cellSize * rows,
+          } as React.CSSProperties
+        }
       >
         {cellSize > 0 &&
           tiles.map((tile) => {
@@ -275,7 +291,7 @@ export default function Board({
       {draggedTile && dragPos && (
         <div
           className="dragged-icon"
-          style={{ left: dragPos.x, top: dragPos.y }}
+          style={{ left: dragPos.x, top: dragPos.y, width: cellSize, height: cellSize }}
           aria-hidden="true"
         >
           <Icon type={draggedTile.type} />

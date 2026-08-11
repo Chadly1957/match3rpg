@@ -31,8 +31,6 @@
 
 .board {
   position: relative;
-  width: min(78vw, 330px);
-  aspect-ratio: 1;
   background: var(--board-bg);
   border-radius: 20px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
@@ -376,8 +374,6 @@
 
 .dragged-icon {
   position: fixed;
-  width: min(26vw, 110px);
-  height: min(26vw, 110px);
   transform: translate(-50%, -50%) scale(1.1);
   display: flex;
   align-items: center;
@@ -385,4 +381,70 @@
   pointer-events: none;
   filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.4));
   z-index: 10;
+}
+
+.skill-tree-btn {
+  position: relative;
+}
+
+.skill-tree-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--invalid);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.skill-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--board-bg);
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+
+.skill-card-info h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.skill-card-info p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.skill-card-info p.skill-card-level {
+  margin-top: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.skill-card-btn {
+  flex-shrink: 0;
+  min-width: 56px;
+}
+
+.skill-card-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }

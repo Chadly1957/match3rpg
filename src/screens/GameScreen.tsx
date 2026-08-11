@@ -2,19 +2,27 @@ import { useState } from 'react'
 import Board, { type BoardResult } from '../components/Board'
 import XpBar from '../components/XpBar'
 import { getLevel } from '../game/levels'
-import { getMoveLimit } from '../game/player'
+import { getGridConfig, getMoveLimit, type SkillLevels } from '../game/skills'
 import type { PlayerXpState } from '../game/playerProgress'
 
 interface GameScreenProps {
   levelId: number
   playerXp: PlayerXpState
+  skillLevels: SkillLevels
   onExit: () => void
   onLevelResult: (levelId: number, score: number, passed: boolean) => void
 }
 
-export default function GameScreen({ levelId, playerXp, onExit, onLevelResult }: GameScreenProps) {
+export default function GameScreen({
+  levelId,
+  playerXp,
+  skillLevels,
+  onExit,
+  onLevelResult,
+}: GameScreenProps) {
   const level = getLevel(levelId)
-  const moveLimit = getMoveLimit(playerXp.level)
+  const moveLimit = getMoveLimit(skillLevels)
+  const { rows, cols } = getGridConfig(skillLevels)
 
   const [attempt, setAttempt] = useState(0)
   const [score, setScore] = useState(0)
@@ -71,6 +79,8 @@ export default function GameScreen({ levelId, playerXp, onExit, onLevelResult }:
       <div className="board-wrap">
         <Board
           key={attempt}
+          rows={rows}
+          cols={cols}
           moveLimit={moveLimit}
           goalScore={level.goalScore}
           onScoreChange={setScore}

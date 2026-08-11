@@ -2,11 +2,14 @@ import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { isLevelUnlocked, type Progress } from '../game/progress'
 import type { PlayerXpState } from '../game/playerProgress'
+import { availableSkillPoints, type SkillLevels } from '../game/skills'
 
 interface OverworldProps {
   progress: Progress
   playerXp: PlayerXpState
+  skillLevels: SkillLevels
   onSelectLevel: (levelId: number) => void
+  onOpenSkillTree: () => void
 }
 
 // Bottom-to-top winding path positions, in percent of the map container.
@@ -40,11 +43,25 @@ function CheckIcon() {
   )
 }
 
-export default function Overworld({ progress, playerXp, onSelectLevel }: OverworldProps) {
+export default function Overworld({
+  progress,
+  playerXp,
+  skillLevels,
+  onSelectLevel,
+  onOpenSkillTree,
+}: OverworldProps) {
+  const points = availableSkillPoints(playerXp.level, skillLevels)
+
   return (
     <div className="screen">
       <h1 className="title">Overworld</h1>
       <XpBar xpState={playerXp} />
+
+      <button type="button" className="btn skill-tree-btn" onClick={onOpenSkillTree}>
+        Skill Tree
+        {points > 0 && <span className="skill-tree-badge">{points}</span>}
+      </button>
+
       <p className="message">Clear a level's goal score to unlock the next.</p>
 
       <div className="map">
