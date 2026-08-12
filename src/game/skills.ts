@@ -168,15 +168,20 @@ export function getScoreMultiplier(levels: SkillLevels): number {
   return SCORE_MULTIPLIER_PER_LEVEL ** levels.scoreMultiplier
 }
 
-// The first point just unlocks the arrow icon (spawn rate starts at the
-// hazard's own floor rate); every point after that ramps it up along the
-// exact same min-to-max curve the hazard uses, just spread across this
-// skill's level range instead of a stretch of game levels.
+// Same floor/ceiling the hazard ramps between, except the floor (the rate
+// the first skill point unlocks it at) runs 10% hotter than the hazard's.
+const ARROW_BASE_RATE = HAZARD_MIN_RATE * 1.1
+const ARROW_MAX_RATE = HAZARD_MAX_RATE
+
+// The first point just unlocks the arrow icon at ARROW_BASE_RATE; every
+// point after that ramps it up toward ARROW_MAX_RATE along the same curve
+// shape the hazard uses, just spread across this skill's level range
+// instead of a stretch of game levels.
 export function getArrowSpawnRate(levels: SkillLevels): number {
   const level = levels.arrowIcon
   if (level <= 0) return 0
-  if (level >= ARROW_MAX_LEVEL) return HAZARD_MAX_RATE
+  if (level >= ARROW_MAX_LEVEL) return ARROW_MAX_RATE
 
   const t = (level - 1) / (ARROW_MAX_LEVEL - 1)
-  return HAZARD_MIN_RATE + t * (HAZARD_MAX_RATE - HAZARD_MIN_RATE)
+  return ARROW_BASE_RATE + t * (ARROW_MAX_RATE - ARROW_BASE_RATE)
 }
