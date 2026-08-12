@@ -6,16 +6,19 @@ import {
   createInitialTiles,
   detectMatchShapes,
   findMatches,
+  getBottomHazardIds,
   scoreForMatch,
   swapTiles,
   tileIdAt,
 } from '../game/board'
-import type { BoardSize, Tile } from '../game/types'
+import type { BoardSize, Tile, TileType } from '../game/types'
 import type { BountyId } from '../game/bounties'
 
 const SWAP_BACK_DELAY_MS = 350
 const MATCH_HIGHLIGHT_MS = 500
 const FALL_DELAY_MS = 350
+const HAZARD_EJECT_MS = 900
+const HAZARD_EJECT_GUARD = 30
 
 const MAX_CELL_PX = 100
 const MIN_CELL_PX = 28
@@ -78,6 +81,14 @@ export default function Board({
   const [invalidPair, setInvalidPair] = useState<[number, number] | null>(null)
   const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set())
   const [message, setMessage] = useState(DEFAULT_MESSAGE)
+  // Hazards that just touched the bottom row, flying out as a one-off
+  // visual clone — rendered outside the clipped .board box (like
+  // dragged-icon) so the bounce-and-fall-off is actually visible past the
+  // board's edge instead of getting clipped by its overflow:hidden.
+  const [ejectingHazards, setEjectingHazards] = useState<
+    { key: number; x: number; y: number; type: TileType }[]
+  >([])
+  const ejectKeyRef = useRef(0)
 
   // Game logic reads/writes this ref so it always sees the live board,
   // independent of React's render/commit timing.
@@ -119,6 +130,30 @@ export default function Board({
     return () => window.removeEventListener('resize', compute)
   }, [rows, cols])
 
+  // Spawns a fixed-position visual clone for each hazard tile that just
+  // touched the bottom row, at its actual on-screen position, then removes
+  // itself once the bounce-and-fall-off animation has had time to finish.
+  const spawnHazardEjects = useCallback(
+    (bottomTiles: Tile[]) => {
+      const rect = boardRef.current?.getBoundingClientRect()
+      if (!rect || cellSize <= 0) return
+
+      const newEjects = bottomTiles.map((tile) => ({
+        key: ejectKeyRef.current++,
+        x: rect.left + tile.col * cellSize,
+        y: rect.top + tile.row * cellSize,
+        type: tile.type,
+      }))
+
+      setEjectingHazards((current) => [...current, ...newEjects])
+      window.setTimeout(() => {
+        const keys = new Set(newEjects.map((e) => e.key))
+        setEjectingHazards((current) => current.filter((e) => !keys.has(e.key)))
+      }, HAZARD_EJECT_MS)
+    },
+    [cellSize],
+  )
+
   const cellFromPoint = useCallback(
     (clientX: number, clientY: number): { row: number; col: number } | null => {
       const rect = boardRef.current?.getBoundingClientRect()
@@ -134,6 +169,43 @@ export default function Board({
     },
     [rows, cols],
   )
+
+  // Runs one collapse-and-refill pass and animates it in (spawn above the
+  // board, then settle into place). Shared by both the normal
+  // match-clearing drop and the follow-up drop after a hazard ejects.
+  const dropAndSettle = useCallback(
+    async (clearedIds: Set<number>) => {
+      const { spawned, settled } = collapseAndRefill(tilesRef.current, clearedIds, { rows, cols }, hazardRate)
+      // flushSync forces each state update to commit as its own paint —
+      // without it React may coalesce the spawn and settle updates into a
+      // single commit, and the browser never paints the spawn position, so
+      // the CSS transition has nothing to animate from and the fall just
+      // snaps straight to its resting place.
+      flushSync(() => applyTiles(spawned))
+      await nextFrame()
+      flushSync(() => applyTiles(settled))
+      await sleep(FALL_DELAY_MS)
+    },
+    [applyTiles, hazardRate, rows, cols],
+  )
+
+  // After tiles settle, any hazard now sitting in the bottom row bounces
+  // out (a visual-only clone flies off screen) and the real board data
+  // clears it immediately so the column can drop again — which can itself
+  // deliver a fresh hazard straight to the bottom, so this keeps going
+  // until none remain. Bounded since each pass clears at least one hazard
+  // from a finite board.
+  const resolveHazardEjections = useCallback(async () => {
+    for (let guard = 0; guard < HAZARD_EJECT_GUARD; guard++) {
+      const bottomIds = getBottomHazardIds(tilesRef.current, { rows, cols })
+      if (bottomIds.length === 0) return
+
+      const bottomTiles = tilesRef.current.filter((t) => bottomIds.includes(t.id))
+      spawnHazardEjects(bottomTiles)
+
+      await dropAndSettle(new Set(bottomIds))
+    }
+  }, [rows, cols, spawnHazardEjects, dropAndSettle])
 
   const attemptSwap = useCallback(
     async (a: number, b: number) => {
@@ -179,24 +251,9 @@ export default function Board({
 
         await sleep(MATCH_HIGHLIGHT_MS)
 
-        const { spawned, settled } = collapseAndRefill(
-          tilesRef.current,
-          matches.ids,
-          { rows, cols },
-          hazardRate,
-        )
-        // flushSync forces each state update to commit as its own paint —
-        // without it React may coalesce the spawn and settle updates into a
-        // single commit, and the browser never paints the spawn position,
-        // so the CSS transition has nothing to animate from and the fall
-        // just snaps straight to its resting place.
-        flushSync(() => {
-          setMatchedIds(new Set())
-          applyTiles(spawned)
-        })
-        await nextFrame()
-        flushSync(() => applyTiles(settled))
-        await sleep(FALL_DELAY_MS)
+        flushSync(() => setMatchedIds(new Set()))
+        await dropAndSettle(matches.ids)
+        await resolveHazardEjections()
 
         matches = findMatches(tilesRef.current, { rows, cols })
       }
@@ -221,8 +278,9 @@ export default function Board({
     },
     [
       applyTiles,
+      dropAndSettle,
+      resolveHazardEjections,
       goalScore,
-      hazardRate,
       scoreMultiplier,
       onBountyProgress,
       onFinish,
@@ -348,6 +406,17 @@ export default function Board({
           <Icon type={draggedTile.type} />
         </div>
       )}
+
+      {ejectingHazards.map((eject) => (
+        <div
+          key={eject.key}
+          className="hazard-eject"
+          style={{ left: eject.x, top: eject.y, width: cellSize, height: cellSize }}
+          aria-hidden="true"
+        >
+          <Icon type={eject.type} />
+        </div>
+      ))}
     </div>
   )
 }

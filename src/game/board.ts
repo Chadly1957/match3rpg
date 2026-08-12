@@ -203,7 +203,7 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
   return basePoints * combo
 }
 
-// Drops surviving tiles down to fill the gaps left by matched tiles, and
+// Drops surviving tiles down to fill the gaps left by cleared cells, and
 // creates new tiles for the empty slots at the top. Returns two arrays:
 // `settled` is the final resting state (what the board should look like
 // once everything has landed), and `spawned` is the same board but with
@@ -212,52 +212,39 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
 // survivors dropping and the new tiles falling in from above.
 //
 // hazardRate is the chance each newly-created fill tile is a hazard instead
-// of a normal icon. A hazard that wound up resting in the bottom row (its
-// column's last slot) is destroyed on the spot and replaced, since hazards
-// don't survive touching the bottom of the board — see rollFillType.
+// of a normal icon. This does one straightforward gravity pass — it does
+// NOT special-case a hazard landing in the bottom row; that's handled by
+// the caller (see ejectBottomHazards) so it can play out as a visible
+// bounce-and-fall-off animation instead of resolving invisibly here.
 export function collapseAndRefill(
   tiles: Tile[],
-  matchedIds: Set<number>,
+  clearedIds: Set<number>,
   { rows, cols }: BoardSize,
   hazardRate = 0,
 ): { spawned: Tile[]; settled: Tile[] } {
-  const survivors = tiles.filter((t) => !matchedIds.has(t.id))
+  const survivors = tiles.filter((t) => !clearedIds.has(t.id))
   const settled: Tile[] = []
   const spawned: Tile[] = []
 
   for (let col = 0; col < cols; col++) {
     const originalColumn = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
-    const originalIds = new Set(originalColumn.map((t) => t.id))
-
-    // Fill the column top-to-bottom, then check whether the bottom slot
-    // landed on a hazard; if so, destroy it and refill again — everything
-    // above it drops one further and a fresh tile falls in at the top.
-    // Bounded by rows+1 iterations since each pass removes at most one
-    // hazard from a finite column.
-    let column: Tile[] = originalColumn
-    for (let guard = 0; guard <= rows; guard++) {
-      const missing = rows - column.length
-      const newTiles = Array.from({ length: missing }, () =>
-        createTile(rollFillType(hazardRate), 0, col),
-      )
-      const fullColumn = [...newTiles, ...column]
-      const bottomTile = fullColumn[fullColumn.length - 1]
-
-      if (!bottomTile || bottomTile.type !== 'hazard') {
-        column = fullColumn
-        break
-      }
-      column = fullColumn.slice(0, -1)
-    }
-
-    const newCount = column.filter((t) => !originalIds.has(t.id)).length
+    const missing = rows - originalColumn.length
+    const newTiles = Array.from({ length: missing }, () => createTile(rollFillType(hazardRate), 0, col))
+    const column = [...newTiles, ...originalColumn]
 
     column.forEach((tile, i) => {
       const finalRow = i
       settled.push({ ...tile, row: finalRow })
-      spawned.push({ ...tile, row: originalIds.has(tile.id) ? finalRow : finalRow - newCount })
+      const isNew = newTiles.includes(tile)
+      spawned.push({ ...tile, row: isNew ? finalRow - missing : finalRow })
     })
   }
 
   return { spawned, settled }
+}
+
+// Ids of hazard tiles currently resting in the board's bottom row — these
+// are the ones that should bounce out next.
+export function getBottomHazardIds(tiles: Tile[], { rows }: BoardSize): number[] {
+  return tiles.filter((t) => t.type === 'hazard' && t.row === rows - 1).map((t) => t.id)
 }
