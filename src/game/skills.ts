@@ -112,6 +112,17 @@ export function upgradeSkill(skillId: SkillId, playerLevel: number, levels: Skil
   return next
 }
 
+// Refunds every spent skill point for free, so players can try a different
+// build without losing progress — unlike resetSkillLevels (the testing-only
+// wipe), this is a real player-facing feature, kept as its own function so
+// the intent at each call site stays clear even though the effect is the
+// same reset to all-zero levels.
+export function respecSkillLevels(): SkillLevels {
+  const fresh = defaultSkillLevels()
+  saveSkillLevels(fresh)
+  return fresh
+}
+
 export const BASE_MOVE_LIMIT = 5
 export const BASE_GRID_SIZE = 3
 

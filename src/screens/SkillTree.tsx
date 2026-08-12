@@ -1,16 +1,32 @@
 import XpBar from '../components/XpBar'
-import { SKILLS, availableSkillPoints, canUpgradeSkill, type SkillId, type SkillLevels } from '../game/skills'
+import {
+  SKILLS,
+  availableSkillPoints,
+  canUpgradeSkill,
+  totalSkillPointsSpent,
+  type SkillId,
+  type SkillLevels,
+} from '../game/skills'
 import type { PlayerXpState } from '../game/playerProgress'
 
 interface SkillTreeProps {
   playerXp: PlayerXpState
   skillLevels: SkillLevels
   onUpgrade: (skillId: SkillId) => void
+  onRespec: () => void
   onExit: () => void
 }
 
-export default function SkillTree({ playerXp, skillLevels, onUpgrade, onExit }: SkillTreeProps) {
+export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, onExit }: SkillTreeProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
+  const spent = totalSkillPointsSpent(skillLevels)
+
+  const handleRespecClick = () => {
+    const confirmed = window.confirm(
+      'Respec all skill points? Every point you\'ve spent is refunded for free so you can try a different build.',
+    )
+    if (confirmed) onRespec()
+  }
 
   return (
     <div className="screen">
@@ -26,6 +42,15 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onExit }: 
       <p className="message">
         {points} skill point{points === 1 ? '' : 's'} available — earn more by leveling up.
       </p>
+
+      <button
+        type="button"
+        className="btn btn--ghost"
+        disabled={spent === 0}
+        onClick={handleRespecClick}
+      >
+        Respec ({spent} point{spent === 1 ? '' : 's'})
+      </button>
 
       <div className="skill-list">
         {SKILLS.map((skill) => {

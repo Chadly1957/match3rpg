@@ -17,6 +17,7 @@ import {
   getBountyCapacity,
   loadSkillLevels,
   resetSkillLevels,
+  respecSkillLevels,
   upgradeSkill,
   type SkillId,
   type SkillLevels,
@@ -105,6 +106,10 @@ function App() {
     setSkillLevels(upgradeSkill(skillId, playerXp.level, skillLevels))
   }
 
+  const handleRespecSkills = () => {
+    setSkillLevels(respecSkillLevels())
+  }
+
   const handleToggleBounty = (bountyId: BountyId) => {
     const capacity = getBountyCapacity(skillLevels)
     setBountyState(toggleBounty(bountyState, bountyId, capacity))
@@ -146,6 +151,7 @@ function App() {
         playerXp={playerXp}
         skillLevels={skillLevels}
         onUpgrade={handleUpgradeSkill}
+        onRespec={handleRespecSkills}
         onExit={handleExitToOverworld}
       />
     )
