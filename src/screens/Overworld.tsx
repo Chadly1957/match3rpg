@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { isLevelUnlocked, type Progress } from '../game/progress'
@@ -14,6 +14,7 @@ interface OverworldProps {
   onSelectLevel: (levelId: number) => void
   onOpenSkillTree: () => void
   onOpenBounties: () => void
+  onWipeProgress: () => void
 }
 
 // Bottom-to-top winding path: level 1 at the bottom, highest level at the
@@ -57,6 +58,14 @@ function CheckIcon() {
   )
 }
 
+function MenuIcon() {
+  return (
+    <svg width={20} height={20} viewBox="0 0 24 24" className="menu-icon" aria-hidden="true">
+      <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export default function Overworld({
   progress,
   playerXp,
@@ -65,11 +74,13 @@ export default function Overworld({
   onSelectLevel,
   onOpenSkillTree,
   onOpenBounties,
+  onWipeProgress,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
   const bountyCapacity = getBountyCapacity(skillLevels)
   const openBountySlots = bountyCapacity - bountyState.selected.length
   const currentNodeRef = useRef<HTMLButtonElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   // With up to 20 levels the map is taller than the viewport — jump to the
   // player's current level on load instead of always starting at level 1.
@@ -79,10 +90,45 @@ export default function Overworld({
 
   const mapHeight = getMapHeight(LEVELS.length)
 
+  const handleWipeClick = () => {
+    setMenuOpen(false)
+    const confirmed = window.confirm(
+      'Wipe all progress? This resets levels, player XP, skills, and bounties — for testing only, cannot be undone.',
+    )
+    if (confirmed) onWipeProgress()
+  }
+
   return (
     <div className="overworld-screen">
       <div className="overworld-header">
-        <h1 className="title">Overworld</h1>
+        <div className="overworld-title-row">
+          <h1 className="title">Overworld</h1>
+          <div className="menu-wrap">
+            <button
+              type="button"
+              className="btn btn--ghost menu-btn"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Menu"
+              aria-expanded={menuOpen}
+            >
+              <MenuIcon />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
+                <div className="menu-dropdown">
+                  <button
+                    type="button"
+                    className="menu-item menu-item--danger"
+                    onClick={handleWipeClick}
+                  >
+                    Wipe Progress
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
         <XpBar xpState={playerXp} />
 
         <div className="nav-row">

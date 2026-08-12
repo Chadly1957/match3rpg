@@ -41,6 +41,14 @@ export function isLevelUnlocked(progress: Progress, levelId: number): boolean {
   return levelId <= progress.unlockedLevel
 }
 
+export function resetProgress(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+}
+
 // Records the outcome of a level attempt: the best score is kept regardless
 // of pass/fail, and clearing the goal unlocks the next level.
 export function recordLevelResult(levelId: number, score: number, passed: boolean): Progress {

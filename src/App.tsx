@@ -4,19 +4,28 @@ import Overworld from './screens/Overworld'
 import SkillTree from './screens/SkillTree'
 import DailyBounties from './screens/DailyBounties'
 import type { BountyFlags } from './components/Board'
-import { loadProgress, recordLevelResult, type Progress } from './game/progress'
+import { loadProgress, recordLevelResult, resetProgress, type Progress } from './game/progress'
 import {
   addXp,
   computePlayerXpState,
   loadTotalXp,
+  resetPlayerXp,
   xpFromScore,
   type PlayerXpState,
 } from './game/playerProgress'
-import { getBountyCapacity, loadSkillLevels, upgradeSkill, type SkillId, type SkillLevels } from './game/skills'
+import {
+  getBountyCapacity,
+  loadSkillLevels,
+  resetSkillLevels,
+  upgradeSkill,
+  type SkillId,
+  type SkillLevels,
+} from './game/skills'
 import {
   completeBounties,
   getBounty,
   loadBountyState,
+  resetBountyState,
   toggleBounty,
   type BountyId,
   type BountyState,
@@ -101,6 +110,22 @@ function App() {
     setBountyState(toggleBounty(bountyState, bountyId, capacity))
   }
 
+  // Testing-only escape hatch: wipes every piece of persisted state
+  // (level progress, player XP, skill points, bounty picks) and resets the
+  // app back to a brand-new save.
+  const handleWipeProgress = () => {
+    resetProgress()
+    resetPlayerXp()
+    resetSkillLevels()
+    resetBountyState()
+
+    setProgress(loadProgress())
+    setPlayerXp(computePlayerXpState(loadTotalXp()))
+    setSkillLevels(loadSkillLevels())
+    setBountyState(loadBountyState())
+    setBountyRewards([])
+  }
+
   if (screen.name === 'level') {
     return (
       <GameScreen
@@ -145,6 +170,7 @@ function App() {
       onSelectLevel={handleSelectLevel}
       onOpenSkillTree={handleOpenSkillTree}
       onOpenBounties={handleOpenBounties}
+      onWipeProgress={handleWipeProgress}
     />
   )
 }

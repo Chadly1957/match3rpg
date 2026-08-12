@@ -71,6 +71,14 @@ function saveSkillLevels(levels: SkillLevels): void {
   }
 }
 
+export function resetSkillLevels(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+}
+
 export function totalSkillPointsSpent(levels: SkillLevels): number {
   return SKILLS.reduce((sum, skill) => sum + levels[skill.id], 0)
 }

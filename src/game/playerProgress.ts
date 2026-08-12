@@ -67,3 +67,11 @@ export function addXp(amount: number): number {
   saveTotalXp(next)
   return next
 }
+
+export function resetPlayerXp(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+}

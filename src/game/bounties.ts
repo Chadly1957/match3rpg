@@ -80,6 +80,14 @@ function saveBountyState(state: BountyState): void {
   }
 }
 
+export function resetBountyState(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+}
+
 // Loading on a new calendar day silently resets selection/completion — that
 // IS the daily reset, no cron or background job needed.
 export function loadBountyState(): BountyState {
