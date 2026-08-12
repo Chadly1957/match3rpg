@@ -21,7 +21,7 @@ interface OverworldProps {
 // top, alternating left/right so the line zig-zags instead of running
 // straight up. Positions are percentages of the map container, so this
 // scales to however many levels LEVELS ends up with.
-const NODE_SPACING_PX = 110
+const NODE_SPACING_PX = 128
 const NODE_TOP_PADDING_PX = 60
 const NODE_BOTTOM_PADDING_PX = 60
 
@@ -188,6 +188,7 @@ export default function Overworld({
               >
                 {completed ? <CheckIcon /> : status === 'locked' ? <LockIcon /> : <span className="node-number">{level.id}</span>}
                 <span className="node-label">{level.name}</span>
+                <span className="node-goal">Goal {level.goalScore}</span>
                 {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}
               </button>
             )
