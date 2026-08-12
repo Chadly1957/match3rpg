@@ -1,5 +1,3 @@
-import { HAZARD_MAX_RATE, HAZARD_MIN_RATE } from './levels'
-
 export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity' | 'scoreMultiplier' | 'arrowIcon'
 
 // Same ramp width as the hazard's 5-level climb (game level 5 to 10) —
@@ -168,15 +166,11 @@ export function getScoreMultiplier(levels: SkillLevels): number {
   return SCORE_MULTIPLIER_PER_LEVEL ** levels.scoreMultiplier
 }
 
-// Same floor/ceiling the hazard ramps between, except the floor (the rate
-// the first skill point unlocks it at) runs 10% hotter than the hazard's.
-const ARROW_BASE_RATE = HAZARD_MIN_RATE * 1.1
-const ARROW_MAX_RATE = HAZARD_MAX_RATE
+const ARROW_BASE_RATE = 0.05
+const ARROW_MAX_RATE = 0.2
 
 // The first point just unlocks the arrow icon at ARROW_BASE_RATE; every
-// point after that ramps it up toward ARROW_MAX_RATE along the same curve
-// shape the hazard uses, just spread across this skill's level range
-// instead of a stretch of game levels.
+// point after that ramps it up linearly toward ARROW_MAX_RATE.
 export function getArrowSpawnRate(levels: SkillLevels): number {
   const level = levels.arrowIcon
   if (level <= 0) return 0
