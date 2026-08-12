@@ -142,6 +142,7 @@ function App() {
         bountyRewards={bountyRewards}
         onExit={handleExitToOverworld}
         onSelectLevel={handleSelectLevel}
+        onOpenSkillTree={handleOpenSkillTree}
         onLevelResult={handleLevelResult}
       />
     )

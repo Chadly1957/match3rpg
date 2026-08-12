@@ -429,9 +429,30 @@
 
 .xp-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   width: min(86vw, 360px);
+}
+
+.xp-bar-levelup {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--match);
+  animation: pulse-levelup 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-levelup {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 
 .xp-bar-level {

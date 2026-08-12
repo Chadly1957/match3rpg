@@ -2,9 +2,10 @@ import type { PlayerXpState } from '../game/playerProgress'
 
 interface XpBarProps {
   xpState: PlayerXpState
+  leveledUp?: boolean
 }
 
-export default function XpBar({ xpState }: XpBarProps) {
+export default function XpBar({ xpState, leveledUp = false }: XpBarProps) {
   const percent = Math.min(100, (xpState.xpIntoLevel / xpState.xpForNextLevel) * 100)
 
   return (
@@ -16,6 +17,7 @@ export default function XpBar({ xpState }: XpBarProps) {
       <div className="xp-bar-text">
         {xpState.xpIntoLevel} / {xpState.xpForNextLevel} XP
       </div>
+      {leveledUp && <div className="xp-bar-levelup">Leveled Up!</div>}
     </div>
   )
 }
