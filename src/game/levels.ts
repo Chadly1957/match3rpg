@@ -10,7 +10,7 @@ export interface LevelDef {
 // reason about than just picking a rate. Rounded to the nearest 50 for
 // clean numbers.
 const BASE_GOAL = 250
-const GOAL_GROWTH = 1.3
+const GOAL_GROWTH = 1.25
 const LEVEL_COUNT = 20
 const ROUND_TO = 50
 
