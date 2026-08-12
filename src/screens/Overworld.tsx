@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
-import { isLevelUnlocked, type Progress } from '../game/progress'
+import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/progress'
 import type { PlayerXpState } from '../game/playerProgress'
 import { availableSkillPoints, getBountyCapacity, type SkillLevels } from '../game/skills'
 import type { BountyState } from '../game/bounties'
@@ -12,6 +12,7 @@ interface OverworldProps {
   skillLevels: SkillLevels
   bountyState: BountyState
   onSelectLevel: (levelId: number) => void
+  onReplayLevel: (levelId: number) => void
   onOpenSkillTree: () => void
   onOpenBounties: () => void
   onWipeProgress: () => void
@@ -72,6 +73,7 @@ export default function Overworld({
   skillLevels,
   bountyState,
   onSelectLevel,
+  onReplayLevel,
   onOpenSkillTree,
   onOpenBounties,
   onWipeProgress,
@@ -81,6 +83,7 @@ export default function Overworld({
   const openBountySlots = bountyCapacity - bountyState.selected.length
   const currentNodeRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [replayLevelId, setReplayLevelId] = useState<number | null>(null)
 
   // With up to 20 levels the map is taller than the viewport — jump to the
   // player's current level on load instead of always starting at level 1.
@@ -183,7 +186,7 @@ export default function Overworld({
                 className={`node node--${status}`}
                 style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
                 disabled={!unlocked}
-                onClick={() => onSelectLevel(level.id)}
+                onClick={() => (completed ? setReplayLevelId(level.id) : onSelectLevel(level.id))}
                 aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
               >
                 {completed ? <CheckIcon /> : status === 'locked' ? <LockIcon /> : <span className="node-number">{level.id}</span>}
@@ -195,6 +198,41 @@ export default function Overworld({
           })}
         </div>
       </div>
+
+      {replayLevelId !== null && (() => {
+        const level = LEVELS.find((l) => l.id === replayLevelId)
+        if (!level) return null
+        const remaining = getReplaysRemaining(progress, replayLevelId)
+
+        return (
+          <div className="modal-backdrop" onClick={() => setReplayLevelId(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <h2>{level.name}</h2>
+              <p className="modal-replay-count">
+                {remaining > 0
+                  ? `${remaining} ${remaining === 1 ? 'Replay' : 'Replays'} Remaining`
+                  : 'No Replays Remaining'}
+              </p>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={remaining <= 0}
+                  onClick={() => {
+                    setReplayLevelId(null)
+                    onReplayLevel(level.id)
+                  }}
+                >
+                  Play
+                </button>
+                <button type="button" className="btn btn--ghost" onClick={() => setReplayLevelId(null)}>
+                  Overworld
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

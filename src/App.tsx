@@ -4,7 +4,7 @@ import Overworld from './screens/Overworld'
 import SkillTree from './screens/SkillTree'
 import DailyBounties from './screens/DailyBounties'
 import type { BountyFlags } from './components/Board'
-import { loadProgress, recordLevelResult, resetProgress, type Progress } from './game/progress'
+import { loadProgress, recordLevelResult, resetProgress, spendReplay, type Progress } from './game/progress'
 import {
   addXp,
   computePlayerXpState,
@@ -56,6 +56,11 @@ function App() {
     setBountyState(loadBountyState())
     setBountyRewards([])
     setScreen({ name: 'level', levelId })
+  }
+
+  const handleReplayLevel = (levelId: number) => {
+    setProgress(spendReplay(levelId))
+    handleSelectLevel(levelId)
   }
 
   const handleOpenSkillTree = () => {
@@ -178,6 +183,7 @@ function App() {
       skillLevels={skillLevels}
       bountyState={bountyState}
       onSelectLevel={handleSelectLevel}
+      onReplayLevel={handleReplayLevel}
       onOpenSkillTree={handleOpenSkillTree}
       onOpenBounties={handleOpenBounties}
       onWipeProgress={handleWipeProgress}
