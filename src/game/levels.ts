@@ -9,7 +9,11 @@ export interface LevelDef {
 // scaling indefinitely as players sink skill points into moves/grid size,
 // so a fixed formula is easier to extend than hand-tuning every entry.
 const HAND_TUNED_GOALS = [300, 600, 1000, 1500, 2200]
-const GOAL_GROWTH = 1.5
+// Was 1.5 (+50% per level), which made levels past ~8 essentially
+// unreachable and only got worse each level further in since it compounds.
+// Scaled back 25%: the +50% increment itself is cut by a quarter, down to
+// +37.5% per level (1 + 0.5 * 0.75).
+const GOAL_GROWTH = 1.375
 const LEVEL_COUNT = 20
 const ROUND_TO = 50
 
