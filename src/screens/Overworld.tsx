@@ -80,69 +80,73 @@ export default function Overworld({
   const mapHeight = getMapHeight(LEVELS.length)
 
   return (
-    <div className="screen">
-      <h1 className="title">Overworld</h1>
-      <XpBar xpState={playerXp} />
+    <div className="overworld-screen">
+      <div className="overworld-header">
+        <h1 className="title">Overworld</h1>
+        <XpBar xpState={playerXp} />
 
-      <div className="nav-row">
-        <button type="button" className="btn nav-btn" onClick={onOpenSkillTree}>
-          Skill Tree
-          {points > 0 && <span className="nav-badge">{points}</span>}
-        </button>
-        <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenBounties}>
-          Daily Bounties
-          {openBountySlots > 0 && <span className="nav-badge">{openBountySlots}</span>}
-        </button>
+        <div className="nav-row">
+          <button type="button" className="btn nav-btn" onClick={onOpenSkillTree}>
+            Skill Tree
+            {points > 0 && <span className="nav-badge">{points}</span>}
+          </button>
+          <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenBounties}>
+            Daily Bounties
+            {openBountySlots > 0 && <span className="nav-badge">{openBountySlots}</span>}
+          </button>
+        </div>
+
+        <p className="message">Clear a level's goal score to unlock the next.</p>
       </div>
 
-      <p className="message">Clear a level's goal score to unlock the next.</p>
+      <div className="overworld-map-scroll">
+        <div className="map" style={{ height: mapHeight }}>
+          <svg className="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            {LEVELS.slice(0, -1).map((level, i) => {
+              const from = getNodePosition(level.id, LEVELS.length)
+              const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length)
+              const active = level.id < progress.unlockedLevel
+              return (
+                <line
+                  key={level.id}
+                  x1={from.x}
+                  y1={from.y}
+                  x2={to.x}
+                  y2={to.y}
+                  className={active ? 'map-line map-line--active' : 'map-line'}
+                  vectorEffect="non-scaling-stroke"
+                />
+              )
+            })}
+          </svg>
 
-      <div className="map" style={{ height: mapHeight }}>
-        <svg className="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          {LEVELS.slice(0, -1).map((level, i) => {
-            const from = getNodePosition(level.id, LEVELS.length)
-            const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length)
-            const active = level.id < progress.unlockedLevel
+          {LEVELS.map((level) => {
+            const pos = getNodePosition(level.id, LEVELS.length)
+            const unlocked = isLevelUnlocked(progress, level.id)
+            const completed = level.id < progress.unlockedLevel
+            const isCurrent = level.id === progress.unlockedLevel
+            const bestScore = progress.bestScores[level.id]
+
+            const status = completed ? 'completed' : unlocked ? 'unlocked' : 'locked'
+
             return (
-              <line
+              <button
                 key={level.id}
-                x1={from.x}
-                y1={from.y}
-                x2={to.x}
-                y2={to.y}
-                className={active ? 'map-line map-line--active' : 'map-line'}
-                vectorEffect="non-scaling-stroke"
-              />
+                ref={isCurrent ? currentNodeRef : undefined}
+                type="button"
+                className={`node node--${status}`}
+                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                disabled={!unlocked}
+                onClick={() => onSelectLevel(level.id)}
+                aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
+              >
+                {completed ? <CheckIcon /> : status === 'locked' ? <LockIcon /> : <span className="node-number">{level.id}</span>}
+                <span className="node-label">{level.name}</span>
+                {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}
+              </button>
             )
           })}
-        </svg>
-
-        {LEVELS.map((level) => {
-          const pos = getNodePosition(level.id, LEVELS.length)
-          const unlocked = isLevelUnlocked(progress, level.id)
-          const completed = level.id < progress.unlockedLevel
-          const isCurrent = level.id === progress.unlockedLevel
-          const bestScore = progress.bestScores[level.id]
-
-          const status = completed ? 'completed' : unlocked ? 'unlocked' : 'locked'
-
-          return (
-            <button
-              key={level.id}
-              ref={isCurrent ? currentNodeRef : undefined}
-              type="button"
-              className={`node node--${status}`}
-              style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-              disabled={!unlocked}
-              onClick={() => onSelectLevel(level.id)}
-              aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
-            >
-              {completed ? <CheckIcon /> : status === 'locked' ? <LockIcon /> : <span className="node-number">{level.id}</span>}
-              <span className="node-label">{level.name}</span>
-              {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}
-            </button>
-          )
-        })}
+        </div>
       </div>
     </div>
   )
