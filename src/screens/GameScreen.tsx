@@ -6,7 +6,14 @@ import { getGridConfig, getMoveLimit, type SkillLevels } from '../game/skills'
 import { getBounty, type BountyId, type BountyState } from '../game/bounties'
 import { xpFromScore, type PlayerXpState } from '../game/playerProgress'
 
-const NO_BOUNTY_PROGRESS: BountyFlags = { tShape: false, lShape: false, doubleChain: false }
+const NO_BOUNTY_PROGRESS: BountyFlags = {
+  tShape: false,
+  lShape: false,
+  doubleChain: false,
+  fourInRow: false,
+  chain5: false,
+  chain10: false,
+}
 
 interface GameScreenProps {
   levelId: number

@@ -32,8 +32,9 @@ export const SKILLS: SkillDef[] = [
     id: 'bountyCapacity',
     name: 'Bounty Capacity',
     description: '+1 daily bounty slot you can take on at once.',
-    // Base 1 + up to 2 more = all 3 bounty types active at once, the
-    // practical ceiling until more bounty types exist.
+    // Base 1 + up to 2 more = 3 concurrent bounty slots. There are more
+    // than 3 bounty types now, so this caps how many of them you can chase
+    // in a single day, not how many exist — raise it if that feels stingy.
     maxLevel: 2,
   },
 ]

@@ -1,4 +1,10 @@
-export type BountyId = 'tShape' | 'lShape' | 'doubleChain'
+export type BountyId =
+  | 'tShape'
+  | 'lShape'
+  | 'doubleChain'
+  | 'fourInRow'
+  | 'chain5'
+  | 'chain10'
 
 export interface BountyDef {
   id: BountyId
@@ -25,6 +31,24 @@ export const BOUNTIES: BountyDef[] = [
     name: 'Double Chain',
     description: 'Trigger a cascade of at least 2 chained matches in a level you clear.',
     xpReward: 400,
+  },
+  {
+    id: 'fourInRow',
+    name: '4 in a Row',
+    description: 'Match 4 or more of the same icon in a row or column, in a level you clear.',
+    xpReward: 500,
+  },
+  {
+    id: 'chain5',
+    name: '5x Chain',
+    description: 'Trigger a cascade of at least 5 chained matches in a level you clear.',
+    xpReward: 750,
+  },
+  {
+    id: 'chain10',
+    name: '10x Chain',
+    description: 'Trigger a cascade of at least 10 chained matches in a level you clear.',
+    xpReward: 1600,
   },
 ]
 
@@ -127,7 +151,7 @@ export function toggleBounty(state: BountyState, bountyId: BountyId, capacity: n
 // ids newly completed (so the caller knows how much XP to award).
 export function completeBounties(
   state: BountyState,
-  achieved: { tShape: boolean; lShape: boolean; doubleChain: boolean },
+  achieved: Record<BountyId, boolean>,
 ): { state: BountyState; newlyCompleted: BountyId[] } {
   const newlyCompleted = state.selected.filter(
     (id) => !state.completed.includes(id) && achieved[id],

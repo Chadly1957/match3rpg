@@ -11,6 +11,7 @@ import {
   tileIdAt,
 } from '../game/board'
 import type { BoardSize, Tile } from '../game/types'
+import type { BountyId } from '../game/bounties'
 
 const SWAP_BACK_DELAY_MS = 350
 const MATCH_HIGHLIGHT_MS = 500
@@ -29,10 +30,15 @@ function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 }
 
-export interface BountyFlags {
-  tShape: boolean
-  lShape: boolean
-  doubleChain: boolean
+export type BountyFlags = Record<BountyId, boolean>
+
+const NO_BOUNTY_PROGRESS: BountyFlags = {
+  tShape: false,
+  lShape: false,
+  doubleChain: false,
+  fourInRow: false,
+  chain5: false,
+  chain10: false,
 }
 
 export interface BoardResult {
@@ -84,7 +90,7 @@ export default function Board({
   // Accumulated across the whole round (every swap and cascade), not reset
   // per-swap, since a bounty just needs to happen at some point in the
   // level, not on the specific move that ends it.
-  const bountyFlagsRef = useRef<BountyFlags>({ tShape: false, lShape: false, doubleChain: false })
+  const bountyFlagsRef = useRef<BountyFlags>({ ...NO_BOUNTY_PROGRESS })
 
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
@@ -161,6 +167,9 @@ export default function Board({
         bountyFlagsRef.current.tShape ||= shapes.tShape
         bountyFlagsRef.current.lShape ||= shapes.lShape
         bountyFlagsRef.current.doubleChain ||= combo >= 2
+        bountyFlagsRef.current.chain5 ||= combo >= 5
+        bountyFlagsRef.current.chain10 ||= combo >= 10
+        bountyFlagsRef.current.fourInRow ||= matches.runs.some((run) => run.cells.length >= 4)
         onBountyProgress?.({ ...bountyFlagsRef.current })
 
         scoreRef.current += scoreForMatch(matches.runs, combo)
