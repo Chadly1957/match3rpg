@@ -44,6 +44,7 @@ export interface BoardResult {
 interface BoardProps extends BoardSize {
   moveLimit: number
   goalScore: number
+  hazardRate?: number
   onScoreChange?: (score: number) => void
   onMovesChange?: (movesLeft: number) => void
   onFinish: (result: BoardResult) => void
@@ -54,6 +55,7 @@ export default function Board({
   cols,
   moveLimit,
   goalScore,
+  hazardRate = 0,
   onScoreChange,
   onMovesChange,
   onFinish,
@@ -163,7 +165,12 @@ export default function Board({
 
         await sleep(MATCH_HIGHLIGHT_MS)
 
-        const { spawned, settled } = collapseAndRefill(tilesRef.current, matches.ids, { rows, cols })
+        const { spawned, settled } = collapseAndRefill(
+          tilesRef.current,
+          matches.ids,
+          { rows, cols },
+          hazardRate,
+        )
         // flushSync forces each state update to commit as its own paint —
         // without it React may coalesce the spawn and settle updates into a
         // single commit, and the browser never paints the spawn position,
@@ -198,7 +205,7 @@ export default function Board({
 
       busyRef.current = false
     },
-    [applyTiles, goalScore, onFinish, onMovesChange, onScoreChange, rows, cols],
+    [applyTiles, goalScore, hazardRate, onFinish, onMovesChange, onScoreChange, rows, cols],
   )
 
   const handlePointerDown = useCallback(
@@ -276,6 +283,7 @@ export default function Board({
               dragTileId !== null && hoverTileId === tile.id && hoverTileId !== dragTileId
             const isInvalid = invalidPair?.includes(tile.id) ?? false
             const isMatched = matchedIds.has(tile.id)
+            const isHazard = tile.type === 'hazard'
 
             return (
               <div
@@ -294,6 +302,7 @@ export default function Board({
                     isHoverTarget ? 'tile-box--hover' : '',
                     isInvalid ? 'tile-box--invalid' : '',
                     isMatched ? 'tile-box--matched' : '',
+                    isHazard ? 'tile-box--hazard' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}

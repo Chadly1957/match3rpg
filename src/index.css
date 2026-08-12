@@ -11,6 +11,8 @@
   --invalid: #f87171;
   --locked: #453a63;
   --accent: #ffd23f;
+  --hazard: #16101f;
+  --hazard-mark: #ff5c5c;
 
   font: 18px/145% system-ui, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;

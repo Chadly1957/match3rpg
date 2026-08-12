@@ -5,7 +5,13 @@ import SkillTree from './screens/SkillTree'
 import DailyBounties from './screens/DailyBounties'
 import type { BountyFlags } from './components/Board'
 import { loadProgress, recordLevelResult, type Progress } from './game/progress'
-import { addXp, computePlayerXpState, loadTotalXp, type PlayerXpState } from './game/playerProgress'
+import {
+  addXp,
+  computePlayerXpState,
+  loadTotalXp,
+  xpFromScore,
+  type PlayerXpState,
+} from './game/playerProgress'
 import { getBountyCapacity, loadSkillLevels, upgradeSkill, type SkillId, type SkillLevels } from './game/skills'
 import {
   completeBounties,
@@ -72,7 +78,7 @@ function App() {
       return
     }
 
-    let totalXp = addXp(score)
+    let totalXp = addXp(xpFromScore(score))
 
     const { state: nextBountyState, newlyCompleted } = completeBounties(bountyState, bountyFlags)
     setBountyState(nextBountyState)

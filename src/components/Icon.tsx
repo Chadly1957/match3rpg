@@ -1,7 +1,7 @@
-import type { IconType } from '../game/types'
+import type { TileType } from '../game/types'
 
 interface IconProps {
-  type: IconType
+  type: TileType
 }
 
 export default function Icon({ type }: IconProps) {
@@ -25,6 +25,18 @@ export default function Icon({ type }: IconProps) {
       return (
         <svg viewBox="0 0 24 24" className="icon-svg icon-circle" aria-hidden="true">
           <circle cx="12" cy="12" r="9" fill="currentColor" />
+        </svg>
+      )
+    case 'hazard':
+      return (
+        <svg viewBox="0 0 24 24" className="icon-svg icon-hazard" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />
+          <path
+            d="M7 7 17 17M17 7 7 17"
+            stroke="var(--hazard-mark)"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
         </svg>
       )
   }

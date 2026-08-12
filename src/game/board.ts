@@ -1,13 +1,21 @@
-import { ICON_TYPES, type BoardSize, type IconType, type Tile } from './types'
+import { ICON_TYPES, type BoardSize, type IconType, type Tile, type TileType } from './types'
 
 let nextTileId = 0
 
-function createTile(type: IconType, row: number, col: number): Tile {
+function createTile(type: TileType, row: number, col: number): Tile {
   return { id: nextTileId++, type, row, col }
 }
 
 export function randomIcon(): IconType {
   return ICON_TYPES[Math.floor(Math.random() * ICON_TYPES.length)]
+}
+
+// Rolls what a newly-created fill tile should be: usually a normal icon,
+// occasionally a hazard once hazardRate is above 0 (see levels.ts for how
+// that rate ramps in starting around level 5).
+function rollFillType(hazardRate: number): TileType {
+  if (hazardRate > 0 && Math.random() < hazardRate) return 'hazard'
+  return randomIcon()
 }
 
 // Builds a starting board with no pre-existing 3-in-a-row matches.
@@ -73,6 +81,14 @@ export interface MatchResult {
   runs: RunInfo[]
 }
 
+// A hazard never matches — not even with another hazard — so it gets a key
+// unique to its own tile id, guaranteeing it never compares equal to
+// anything else on the board.
+function matchKey(tile: Tile | undefined): string | undefined {
+  if (!tile) return undefined
+  return tile.type === 'hazard' ? `hazard-${tile.id}` : tile.type
+}
+
 // Scans the whole board for every run of 3+ equal icons, horizontal and
 // vertical, and returns the matched tile ids plus each run's cells.
 // Multiple simultaneous matches all get flagged in one pass.
@@ -88,8 +104,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let row = 0; row < rows; row++) {
     let runStart = 0
     for (let col = 1; col <= cols; col++) {
-      const prev = grid[row * cols + (col - 1)]?.type
-      const curr = col < cols ? grid[row * cols + col]?.type : undefined
+      const prev = matchKey(grid[row * cols + (col - 1)])
+      const curr = col < cols ? matchKey(grid[row * cols + col]) : undefined
       if (curr !== prev) {
         if (col - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -110,8 +126,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let col = 0; col < cols; col++) {
     let runStart = 0
     for (let row = 1; row <= rows; row++) {
-      const prev = grid[(row - 1) * cols + col]?.type
-      const curr = row < rows ? grid[row * cols + col]?.type : undefined
+      const prev = matchKey(grid[(row - 1) * cols + col])
+      const curr = row < rows ? matchKey(grid[row * cols + col]) : undefined
       if (curr !== prev) {
         if (row - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -194,32 +210,53 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
 // the new tiles placed above row 0 (negative rows) — render `spawned`
 // first, then `settled`, and the CSS transition on transform animates the
 // survivors dropping and the new tiles falling in from above.
+//
+// hazardRate is the chance each newly-created fill tile is a hazard instead
+// of a normal icon. A hazard that wound up resting in the bottom row (its
+// column's last slot) is destroyed on the spot and replaced, since hazards
+// don't survive touching the bottom of the board — see rollFillType.
 export function collapseAndRefill(
   tiles: Tile[],
   matchedIds: Set<number>,
   { rows, cols }: BoardSize,
+  hazardRate = 0,
 ): { spawned: Tile[]; settled: Tile[] } {
   const survivors = tiles.filter((t) => !matchedIds.has(t.id))
   const settled: Tile[] = []
   const spawned: Tile[] = []
 
   for (let col = 0; col < cols; col++) {
-    const columnSurvivors = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
-    const missing = rows - columnSurvivors.length
+    const originalColumn = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
+    const originalIds = new Set(originalColumn.map((t) => t.id))
 
-    columnSurvivors.forEach((tile, i) => {
-      const finalRow = missing + i
-      settled.push({ ...tile, row: finalRow })
-      spawned.push({ ...tile, row: finalRow })
-    })
+    // Fill the column top-to-bottom, then check whether the bottom slot
+    // landed on a hazard; if so, destroy it and refill again — everything
+    // above it drops one further and a fresh tile falls in at the top.
+    // Bounded by rows+1 iterations since each pass removes at most one
+    // hazard from a finite column.
+    let column: Tile[] = originalColumn
+    for (let guard = 0; guard <= rows; guard++) {
+      const missing = rows - column.length
+      const newTiles = Array.from({ length: missing }, () =>
+        createTile(rollFillType(hazardRate), 0, col),
+      )
+      const fullColumn = [...newTiles, ...column]
+      const bottomTile = fullColumn[fullColumn.length - 1]
 
-    for (let i = 0; i < missing; i++) {
-      const type = randomIcon()
-      const finalRow = i
-      const tile = createTile(type, finalRow, col)
-      settled.push(tile)
-      spawned.push({ ...tile, row: finalRow - missing })
+      if (!bottomTile || bottomTile.type !== 'hazard') {
+        column = fullColumn
+        break
+      }
+      column = fullColumn.slice(0, -1)
     }
+
+    const newCount = column.filter((t) => !originalIds.has(t.id)).length
+
+    column.forEach((tile, i) => {
+      const finalRow = i
+      settled.push({ ...tile, row: finalRow })
+      spawned.push({ ...tile, row: originalIds.has(tile.id) ? finalRow : finalRow - newCount })
+    })
   }
 
   return { spawned, settled }

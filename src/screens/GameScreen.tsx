@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import Board, { type BoardResult, type BountyFlags } from '../components/Board'
 import XpBar from '../components/XpBar'
-import { getLevel } from '../game/levels'
+import { getHazardRate, getLevel } from '../game/levels'
 import { getGridConfig, getMoveLimit, type SkillLevels } from '../game/skills'
 import { getBounty, type BountyId } from '../game/bounties'
-import type { PlayerXpState } from '../game/playerProgress'
+import { xpFromScore, type PlayerXpState } from '../game/playerProgress'
 
 interface GameScreenProps {
   levelId: number
@@ -26,6 +26,7 @@ export default function GameScreen({
   const level = getLevel(levelId)
   const moveLimit = getMoveLimit(skillLevels)
   const { rows, cols } = getGridConfig(skillLevels)
+  const hazardRate = getHazardRate(levelId)
 
   const [attempt, setAttempt] = useState(0)
   const [score, setScore] = useState(0)
@@ -86,6 +87,7 @@ export default function GameScreen({
           cols={cols}
           moveLimit={moveLimit}
           goalScore={level.goalScore}
+          hazardRate={hazardRate}
           onScoreChange={setScore}
           onMovesChange={setMovesLeft}
           onFinish={handleFinish}
@@ -99,7 +101,7 @@ export default function GameScreen({
             </p>
             {result.passed ? (
               <>
-                <p className="level-result-xp">+{result.score} XP</p>
+                <p className="level-result-xp">+{xpFromScore(result.score)} XP</p>
                 {bountyRewards.map((id) => {
                   const bounty = getBounty(id)
                   if (!bounty) return null

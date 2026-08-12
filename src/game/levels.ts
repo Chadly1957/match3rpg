@@ -34,3 +34,19 @@ export const LEVELS: LevelDef[] = Array.from({ length: LEVEL_COUNT }, (_, i) => 
 export function getLevel(id: number): LevelDef | undefined {
   return LEVELS.find((level) => level.id === id)
 }
+
+// Hazards (dead blocks) start appearing at HAZARD_START_LEVEL with a small
+// drop rate, ramping up to HAZARD_MAX_RATE by HAZARD_RAMP_END_LEVEL, then
+// holding steady from there.
+const HAZARD_START_LEVEL = 5
+const HAZARD_RAMP_END_LEVEL = 10
+const HAZARD_MIN_RATE = 0.03
+const HAZARD_MAX_RATE = 0.08
+
+export function getHazardRate(id: number): number {
+  if (id < HAZARD_START_LEVEL) return 0
+  if (id >= HAZARD_RAMP_END_LEVEL) return HAZARD_MAX_RATE
+
+  const t = (id - HAZARD_START_LEVEL) / (HAZARD_RAMP_END_LEVEL - HAZARD_START_LEVEL)
+  return HAZARD_MIN_RATE + t * (HAZARD_MAX_RATE - HAZARD_MIN_RATE)
+}
