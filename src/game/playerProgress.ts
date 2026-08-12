@@ -9,10 +9,10 @@ const XP_GROWTH = 1.25
 
 const STORAGE_KEY = 'match3rpg.playerXp.v1'
 
-// A cleared level's score doesn't convert 1:1 to XP — only a quarter of it
-// does, so grid-size/moves investment (which inflates score a lot) doesn't
-// also trivially blow out player leveling.
-const SCORE_TO_XP_RATE = 0.25
+// A cleared level's score doesn't convert 1:1 to XP — only 35% of it does,
+// so grid-size/moves investment (which inflates score a lot) doesn't also
+// trivially blow out player leveling.
+const SCORE_TO_XP_RATE = 0.35
 
 export function xpFromScore(score: number): number {
   return Math.round(score * SCORE_TO_XP_RATE)
