@@ -4,35 +4,22 @@ export interface LevelDef {
   goalScore: number
 }
 
-// The first 5 goal scores are hand-picked for an early, gentle ramp. Beyond
-// that, scores compound by GOAL_GROWTH per level — levels are meant to keep
-// scaling indefinitely as players sink skill points into moves/grid size,
-// so a fixed formula is easier to extend than hand-tuning every entry.
-const HAND_TUNED_GOALS = [300, 600, 1000, 1500, 2200]
-// Was 1.5 (+50% per level). First scaled back 25% to +37.5% per level
-// (1 + 0.5 * 0.75), then another 10% off that increment: +33.75% per level
-// (1 + 0.375 * 0.9). Still compounding, so later levels feel this more than
-// earlier ones.
-const GOAL_GROWTH = 1.3375
+// Level 1's goal, then every level after compounds by GOAL_GROWTH — a
+// single clean exponential instead of hand-tuned early levels plus a
+// separate formula for the rest, since that hybrid stopped being easier to
+// reason about than just picking a rate. Rounded to the nearest 50 for
+// clean numbers.
+const BASE_GOAL = 250
+const GOAL_GROWTH = 1.3
 const LEVEL_COUNT = 20
 const ROUND_TO = 50
-// Applied uniformly to every level's goal (hand-tuned and formula-derived
-// alike) — an across-the-board 10% easier target.
-const GOAL_SCALE = 0.9
 
 function roundToNearest(value: number, step: number): number {
   return Math.round(value / step) * step
 }
 
 function goalScoreForLevel(id: number): number {
-  const handTuned = HAND_TUNED_GOALS[id - 1]
-  const raw =
-    handTuned !== undefined
-      ? handTuned
-      : HAND_TUNED_GOALS[HAND_TUNED_GOALS.length - 1] *
-        GOAL_GROWTH ** (id - HAND_TUNED_GOALS.length)
-
-  return roundToNearest(raw * GOAL_SCALE, ROUND_TO)
+  return roundToNearest(BASE_GOAL * GOAL_GROWTH ** (id - 1), ROUND_TO)
 }
 
 export const LEVELS: LevelDef[] = Array.from({ length: LEVEL_COUNT }, (_, i) => {
