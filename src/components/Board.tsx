@@ -2,11 +2,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { flushSync } from 'react-dom'
 import Icon from './Icon'
 import {
+  arrowRowClearIds,
   collapseAndRefill,
   createInitialTiles,
   detectMatchShapes,
   findMatches,
   getBottomHazardIds,
+  scoreForArrowWipe,
   scoreForMatch,
   swapTiles,
   tileIdAt,
@@ -54,6 +56,7 @@ interface BoardProps extends BoardSize {
   moveLimit: number
   goalScore: number
   hazardRate?: number
+  arrowRate?: number
   scoreMultiplier?: number
   onScoreChange?: (score: number) => void
   onMovesChange?: (movesLeft: number) => void
@@ -67,6 +70,7 @@ export default function Board({
   moveLimit,
   goalScore,
   hazardRate = 0,
+  arrowRate = 0,
   scoreMultiplier = 1,
   onScoreChange,
   onMovesChange,
@@ -175,7 +179,13 @@ export default function Board({
   // match-clearing drop and the follow-up drop after a hazard ejects.
   const dropAndSettle = useCallback(
     async (clearedIds: Set<number>) => {
-      const { spawned, settled } = collapseAndRefill(tilesRef.current, clearedIds, { rows, cols }, hazardRate)
+      const { spawned, settled } = collapseAndRefill(
+        tilesRef.current,
+        clearedIds,
+        { rows, cols },
+        hazardRate,
+        arrowRate,
+      )
       // flushSync forces each state update to commit as its own paint —
       // without it React may coalesce the spawn and settle updates into a
       // single commit, and the browser never paints the spawn position, so
@@ -186,7 +196,7 @@ export default function Board({
       flushSync(() => applyTiles(settled))
       await sleep(FALL_DELAY_MS)
     },
-    [applyTiles, hazardRate, rows, cols],
+    [applyTiles, hazardRate, arrowRate, rows, cols],
   )
 
   // After tiles settle, any hazard now sitting in the bottom row bounces
@@ -234,7 +244,11 @@ export default function Board({
       let combo = 0
       while (matches.ids.size > 0) {
         combo += 1
-        setMatchedIds(matches.ids)
+
+        const arrowExtraIds = arrowRowClearIds(tilesRef.current, matches, { rows, cols })
+        const clearedIds = arrowExtraIds.size > 0 ? new Set([...matches.ids, ...arrowExtraIds]) : matches.ids
+
+        setMatchedIds(clearedIds)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
 
         const shapes = detectMatchShapes(matches.runs)
@@ -246,13 +260,15 @@ export default function Board({
         bountyFlagsRef.current.fourInRow ||= matches.runs.some((run) => run.cells.length >= 4)
         onBountyProgress?.({ ...bountyFlagsRef.current })
 
-        scoreRef.current += Math.round(scoreForMatch(matches.runs, combo) * scoreMultiplier)
+        const matchPoints = scoreForMatch(matches.runs, combo)
+        const wipePoints = scoreForArrowWipe(tilesRef.current, arrowExtraIds, combo)
+        scoreRef.current += Math.round((matchPoints + wipePoints) * scoreMultiplier)
         onScoreChange?.(scoreRef.current)
 
         await sleep(MATCH_HIGHLIGHT_MS)
 
         flushSync(() => setMatchedIds(new Set()))
-        await dropAndSettle(matches.ids)
+        await dropAndSettle(clearedIds)
         await resolveHazardEjections()
 
         matches = findMatches(tilesRef.current, { rows, cols })
@@ -367,6 +383,7 @@ export default function Board({
             const isInvalid = invalidPair?.includes(tile.id) ?? false
             const isMatched = matchedIds.has(tile.id)
             const isHazard = tile.type === 'hazard'
+            const isArrow = tile.type === 'arrow'
 
             return (
               <div
@@ -386,6 +403,7 @@ export default function Board({
                     isInvalid ? 'tile-box--invalid' : '',
                     isMatched ? 'tile-box--matched' : '',
                     isHazard ? 'tile-box--hazard' : '',
+                    isArrow ? 'tile-box--arrow' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}

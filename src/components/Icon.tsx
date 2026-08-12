@@ -39,5 +39,19 @@ export default function Icon({ type }: IconProps) {
           />
         </svg>
       )
+    case 'arrow':
+      return (
+        <svg viewBox="0 0 24 24" className="icon-svg icon-arrow" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />
+          <path
+            d="M4.5 12h15M4.5 12l4.5-4M4.5 12l4.5 4M19.5 12l-4.5-4M19.5 12l-4.5 4"
+            stroke="var(--arrow-mark)"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </svg>
+      )
   }
 }

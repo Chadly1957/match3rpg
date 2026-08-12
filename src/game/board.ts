@@ -12,9 +12,11 @@ export function randomIcon(): IconType {
 
 // Rolls what a newly-created fill tile should be: usually a normal icon,
 // occasionally a hazard once hazardRate is above 0 (see levels.ts for how
-// that rate ramps in starting around level 5).
-function rollFillType(hazardRate: number): TileType {
+// that rate ramps in starting around level 5), or an arrow power tile once
+// arrowRate is above 0 (unlocked and ramped via the Arrow Tile skill).
+function rollFillType(hazardRate: number, arrowRate: number): TileType {
   if (hazardRate > 0 && Math.random() < hazardRate) return 'hazard'
+  if (arrowRate > 0 && Math.random() < arrowRate) return 'arrow'
   return randomIcon()
 }
 
@@ -83,10 +85,14 @@ export interface MatchResult {
 
 // A hazard never matches — not even with another hazard — so it gets a key
 // unique to its own tile id, guaranteeing it never compares equal to
-// anything else on the board.
-function matchKey(tile: Tile | undefined): string | undefined {
+// anything else on the board. An arrow matches normally along a row, but
+// never down a column — it gets the same unique-key treatment, just only
+// for the vertical pass.
+function matchKey(tile: Tile | undefined, orientation: 'row' | 'col'): string | undefined {
   if (!tile) return undefined
-  return tile.type === 'hazard' ? `hazard-${tile.id}` : tile.type
+  if (tile.type === 'hazard') return `hazard-${tile.id}`
+  if (tile.type === 'arrow' && orientation === 'col') return `arrow-${tile.id}`
+  return tile.type
 }
 
 // Scans the whole board for every run of 3+ equal icons, horizontal and
@@ -104,8 +110,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let row = 0; row < rows; row++) {
     let runStart = 0
     for (let col = 1; col <= cols; col++) {
-      const prev = matchKey(grid[row * cols + (col - 1)])
-      const curr = col < cols ? matchKey(grid[row * cols + col]) : undefined
+      const prev = matchKey(grid[row * cols + (col - 1)], 'row')
+      const curr = col < cols ? matchKey(grid[row * cols + col], 'row') : undefined
       if (curr !== prev) {
         if (col - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -126,8 +132,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let col = 0; col < cols; col++) {
     let runStart = 0
     for (let row = 1; row <= rows; row++) {
-      const prev = matchKey(grid[(row - 1) * cols + col])
-      const curr = row < rows ? matchKey(grid[row * cols + col]) : undefined
+      const prev = matchKey(grid[(row - 1) * cols + col], 'col')
+      const curr = row < rows ? matchKey(grid[row * cols + col], 'col') : undefined
       if (curr !== prev) {
         if (row - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -203,6 +209,43 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
   return basePoints * combo
 }
 
+// A run of 3+ arrows scores like any other match (via scoreForMatch above),
+// but also detonates every other row it appears in: every tile across that
+// row gets cleared alongside the match, whatever type it is. Returns the ids
+// of those *extra* tiles (i.e. not already part of the match itself), so the
+// caller can add them to what gets cleared.
+export function arrowRowClearIds(tiles: Tile[], matches: MatchResult, { cols }: BoardSize): Set<number> {
+  const grid = new Map<number, Tile>()
+  for (const tile of tiles) grid.set(tile.row * cols + tile.col, tile)
+
+  const arrowRows = new Set<number>()
+  for (const run of matches.runs) {
+    if (run.orientation !== 'row') continue
+    const isArrowRun = run.cells.every((cell) => grid.get(cell.row * cols + cell.col)?.type === 'arrow')
+    if (isArrowRun) arrowRows.add(run.cells[0].row)
+  }
+
+  const extraIds = new Set<number>()
+  for (const row of arrowRows) {
+    for (let col = 0; col < cols; col++) {
+      const tile = grid.get(row * cols + col)
+      if (tile && !matches.ids.has(tile.id)) extraIds.add(tile.id)
+    }
+  }
+  return extraIds
+}
+
+// Every icon an arrow row-clear sweeps up beyond the arrow match itself
+// scores as if it were one more tile in that match — hazards are along for
+// the ride but stay worth nothing, same as when they're cleared normally.
+export function scoreForArrowWipe(tiles: Tile[], extraIds: Set<number>, combo: number): number {
+  let scoringTiles = 0
+  for (const tile of tiles) {
+    if (extraIds.has(tile.id) && tile.type !== 'hazard') scoringTiles += 1
+  }
+  return scoringTiles * EXTRA_TILE_POINTS * combo
+}
+
 // Drops surviving tiles down to fill the gaps left by cleared cells, and
 // creates new tiles for the empty slots at the top. Returns two arrays:
 // `settled` is the final resting state (what the board should look like
@@ -212,15 +255,17 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
 // survivors dropping and the new tiles falling in from above.
 //
 // hazardRate is the chance each newly-created fill tile is a hazard instead
-// of a normal icon. This does one straightforward gravity pass — it does
-// NOT special-case a hazard landing in the bottom row; that's handled by
-// the caller (see ejectBottomHazards) so it can play out as a visible
-// bounce-and-fall-off animation instead of resolving invisibly here.
+// of a normal icon, and arrowRate is the same for arrow power tiles. This
+// does one straightforward gravity pass — it does NOT special-case a hazard
+// landing in the bottom row; that's handled by the caller (see
+// ejectBottomHazards) so it can play out as a visible bounce-and-fall-off
+// animation instead of resolving invisibly here.
 export function collapseAndRefill(
   tiles: Tile[],
   clearedIds: Set<number>,
   { rows, cols }: BoardSize,
   hazardRate = 0,
+  arrowRate = 0,
 ): { spawned: Tile[]; settled: Tile[] } {
   const survivors = tiles.filter((t) => !clearedIds.has(t.id))
   const settled: Tile[] = []
@@ -229,7 +274,7 @@ export function collapseAndRefill(
   for (let col = 0; col < cols; col++) {
     const originalColumn = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
     const missing = rows - originalColumn.length
-    const newTiles = Array.from({ length: missing }, () => createTile(rollFillType(hazardRate), 0, col))
+    const newTiles = Array.from({ length: missing }, () => createTile(rollFillType(hazardRate, arrowRate), 0, col))
     const column = [...newTiles, ...originalColumn]
 
     column.forEach((tile, i) => {

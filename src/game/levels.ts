@@ -36,8 +36,10 @@ export function getLevel(id: number): LevelDef | undefined {
 // holding steady from there.
 const HAZARD_START_LEVEL = 5
 const HAZARD_RAMP_END_LEVEL = 10
-const HAZARD_MIN_RATE = 0.03
-const HAZARD_MAX_RATE = 0.08
+// Exported so the arrow power tile skill can ramp its own spawn rate along
+// the exact same curve, just driven by skill points instead of game level.
+export const HAZARD_MIN_RATE = 0.03
+export const HAZARD_MAX_RATE = 0.08
 
 export function getHazardRate(id: number): number {
   if (id < HAZARD_START_LEVEL) return 0

@@ -1,4 +1,11 @@
-export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity' | 'scoreMultiplier'
+import { HAZARD_MAX_RATE, HAZARD_MIN_RATE } from './levels'
+
+export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity' | 'scoreMultiplier' | 'arrowIcon'
+
+// Same ramp width as the hazard's 5-level climb (game level 5 to 10) —
+// point 1 unlocks the icon at the hazard's floor rate, point ARROW_MAX_LEVEL
+// reaches its ceiling rate.
+const ARROW_MAX_LEVEL = 6
 
 export interface SkillDef {
   id: SkillId
@@ -43,6 +50,13 @@ export const SKILLS: SkillDef[] = [
     description: 'Matches are worth 15% more points per level, compounding.',
     maxLevel: 10,
   },
+  {
+    id: 'arrowIcon',
+    name: 'Arrow Tile',
+    description:
+      'Unlocks the arrow icon, which can only match left-to-right and clears its whole row when it does. Further points raise how often it appears.',
+    maxLevel: ARROW_MAX_LEVEL,
+  },
 ]
 
 export type SkillLevels = Record<SkillId, number>
@@ -50,7 +64,7 @@ export type SkillLevels = Record<SkillId, number>
 const STORAGE_KEY = 'match3rpg.skills.v1'
 
 function defaultSkillLevels(): SkillLevels {
-  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0, scoreMultiplier: 0 }
+  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0, scoreMultiplier: 0, arrowIcon: 0 }
 }
 
 function isValidSkillLevels(value: unknown): value is SkillLevels {
@@ -152,4 +166,17 @@ const SCORE_MULTIPLIER_PER_LEVEL = 1.15
 // more too, not just +15% flat each time.
 export function getScoreMultiplier(levels: SkillLevels): number {
   return SCORE_MULTIPLIER_PER_LEVEL ** levels.scoreMultiplier
+}
+
+// The first point just unlocks the arrow icon (spawn rate starts at the
+// hazard's own floor rate); every point after that ramps it up along the
+// exact same min-to-max curve the hazard uses, just spread across this
+// skill's level range instead of a stretch of game levels.
+export function getArrowSpawnRate(levels: SkillLevels): number {
+  const level = levels.arrowIcon
+  if (level <= 0) return 0
+  if (level >= ARROW_MAX_LEVEL) return HAZARD_MAX_RATE
+
+  const t = (level - 1) / (ARROW_MAX_LEVEL - 1)
+  return HAZARD_MIN_RATE + t * (HAZARD_MAX_RATE - HAZARD_MIN_RATE)
 }

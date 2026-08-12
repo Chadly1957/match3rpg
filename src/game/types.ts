@@ -6,7 +6,11 @@ export const ICON_TYPES: IconType[] = ['star', 'square', 'circle']
 // any other tile, but it never matches — not even with another hazard — and
 // scores nothing. It's destroyed the moment gravity carries it into the
 // bottom row.
-export type TileType = IconType | 'hazard'
+//
+// An arrow is a power tile: it only ever matches horizontally (never in a
+// column), and matching 3+ in a row detonates the whole row it's in,
+// clearing every tile across it and scoring the extras as bonus matches.
+export type TileType = IconType | 'hazard' | 'arrow'
 
 // A tile keeps a stable `id` across moves so React keeps the same DOM node
 // as its row/col change — that's what lets a swap or a fall animate via a

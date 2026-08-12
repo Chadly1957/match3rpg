@@ -4,6 +4,7 @@ import XpBar from '../components/XpBar'
 import { getHazardRate, getLevel } from '../game/levels'
 import {
   availableSkillPoints,
+  getArrowSpawnRate,
   getGridConfig,
   getMoveLimit,
   getScoreMultiplier,
@@ -49,6 +50,7 @@ export default function GameScreen({
   const moveLimit = getMoveLimit(skillLevels)
   const { rows, cols } = getGridConfig(skillLevels)
   const hazardRate = getHazardRate(levelId)
+  const arrowRate = getArrowSpawnRate(skillLevels)
   const scoreMultiplier = getScoreMultiplier(skillLevels)
 
   const [attempt, setAttempt] = useState(0)
@@ -120,6 +122,7 @@ export default function GameScreen({
           moveLimit={moveLimit}
           goalScore={level.goalScore}
           hazardRate={hazardRate}
+          arrowRate={arrowRate}
           scoreMultiplier={scoreMultiplier}
           onScoreChange={setScore}
           onMovesChange={setMovesLeft}
