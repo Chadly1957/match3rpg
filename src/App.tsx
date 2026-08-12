@@ -132,6 +132,7 @@ function App() {
         levelId={screen.levelId}
         playerXp={playerXp}
         skillLevels={skillLevels}
+        bountyState={bountyState}
         bountyRewards={bountyRewards}
         onExit={handleExitToOverworld}
         onLevelResult={handleLevelResult}

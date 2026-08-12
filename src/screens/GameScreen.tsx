@@ -3,13 +3,16 @@ import Board, { type BoardResult, type BountyFlags } from '../components/Board'
 import XpBar from '../components/XpBar'
 import { getHazardRate, getLevel } from '../game/levels'
 import { getGridConfig, getMoveLimit, type SkillLevels } from '../game/skills'
-import { getBounty, type BountyId } from '../game/bounties'
+import { getBounty, type BountyId, type BountyState } from '../game/bounties'
 import { xpFromScore, type PlayerXpState } from '../game/playerProgress'
+
+const NO_BOUNTY_PROGRESS: BountyFlags = { tShape: false, lShape: false, doubleChain: false }
 
 interface GameScreenProps {
   levelId: number
   playerXp: PlayerXpState
   skillLevels: SkillLevels
+  bountyState: BountyState
   bountyRewards: BountyId[]
   onExit: () => void
   onLevelResult: (levelId: number, score: number, passed: boolean, bountyFlags: BountyFlags) => void
@@ -19,6 +22,7 @@ export default function GameScreen({
   levelId,
   playerXp,
   skillLevels,
+  bountyState,
   bountyRewards,
   onExit,
   onLevelResult,
@@ -31,6 +35,7 @@ export default function GameScreen({
   const [attempt, setAttempt] = useState(0)
   const [score, setScore] = useState(0)
   const [movesLeft, setMovesLeft] = useState(moveLimit)
+  const [liveBountyFlags, setLiveBountyFlags] = useState<BountyFlags>(NO_BOUNTY_PROGRESS)
   const [result, setResult] = useState<BoardResult | null>(null)
 
   if (!level) {
@@ -55,6 +60,7 @@ export default function GameScreen({
     setResult(null)
     setScore(0)
     setMovesLeft(moveLimit)
+    setLiveBountyFlags(NO_BOUNTY_PROGRESS)
     setAttempt((n) => n + 1)
   }
 
@@ -90,6 +96,7 @@ export default function GameScreen({
           hazardRate={hazardRate}
           onScoreChange={setScore}
           onMovesChange={setMovesLeft}
+          onBountyProgress={setLiveBountyFlags}
           onFinish={handleFinish}
         />
 
@@ -127,6 +134,38 @@ export default function GameScreen({
           </div>
         )}
       </div>
+
+      {bountyState.selected.length > 0 && (
+        <div className="board-bounties">
+          {bountyState.selected.map((id) => {
+            const bounty = getBounty(id)
+            if (!bounty) return null
+            const redeemed = bountyState.completed.includes(id)
+            const checked = redeemed || liveBountyFlags[id]
+
+            return (
+              <div
+                key={id}
+                className={
+                  redeemed
+                    ? 'board-bounty board-bounty--redeemed'
+                    : checked
+                      ? 'board-bounty board-bounty--checked'
+                      : 'board-bounty'
+                }
+              >
+                <span className="board-bounty-check" aria-hidden="true">
+                  {checked ? '✓' : ''}
+                </span>
+                <span className="board-bounty-name">{bounty.name}</span>
+                <span className="board-bounty-status">
+                  {redeemed ? 'Redeemed' : checked ? 'Clear level to redeem' : `+${bounty.xpReward} XP`}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

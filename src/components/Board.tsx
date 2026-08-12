@@ -47,6 +47,7 @@ interface BoardProps extends BoardSize {
   hazardRate?: number
   onScoreChange?: (score: number) => void
   onMovesChange?: (movesLeft: number) => void
+  onBountyProgress?: (flags: BountyFlags) => void
   onFinish: (result: BoardResult) => void
 }
 
@@ -58,6 +59,7 @@ export default function Board({
   hazardRate = 0,
   onScoreChange,
   onMovesChange,
+  onBountyProgress,
   onFinish,
 }: BoardProps) {
   const [tiles, setTiles] = useState<Tile[]>(() => createInitialTiles({ rows, cols }))
@@ -159,6 +161,7 @@ export default function Board({
         bountyFlagsRef.current.tShape ||= shapes.tShape
         bountyFlagsRef.current.lShape ||= shapes.lShape
         bountyFlagsRef.current.doubleChain ||= combo >= 2
+        onBountyProgress?.({ ...bountyFlagsRef.current })
 
         scoreRef.current += scoreForMatch(matches.runs, combo)
         onScoreChange?.(scoreRef.current)
@@ -205,7 +208,17 @@ export default function Board({
 
       busyRef.current = false
     },
-    [applyTiles, goalScore, hazardRate, onFinish, onMovesChange, onScoreChange, rows, cols],
+    [
+      applyTiles,
+      goalScore,
+      hazardRate,
+      onBountyProgress,
+      onFinish,
+      onMovesChange,
+      onScoreChange,
+      rows,
+      cols,
+    ],
   )
 
   const handlePointerDown = useCallback(
