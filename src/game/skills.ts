@@ -1,4 +1,4 @@
-export type SkillId = 'moves' | 'gridWidth' | 'gridHeight'
+export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity'
 
 export interface SkillDef {
   id: SkillId
@@ -28,6 +28,14 @@ export const SKILLS: SkillDef[] = [
     description: 'Adds +1 row to the board, on every stage.',
     maxLevel: 5,
   },
+  {
+    id: 'bountyCapacity',
+    name: 'Bounty Capacity',
+    description: '+1 daily bounty slot you can take on at once.',
+    // Base 1 + up to 2 more = all 3 bounty types active at once, the
+    // practical ceiling until more bounty types exist.
+    maxLevel: 2,
+  },
 ]
 
 export type SkillLevels = Record<SkillId, number>
@@ -35,7 +43,7 @@ export type SkillLevels = Record<SkillId, number>
 const STORAGE_KEY = 'match3rpg.skills.v1'
 
 function defaultSkillLevels(): SkillLevels {
-  return { moves: 0, gridWidth: 0, gridHeight: 0 }
+  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0 }
 }
 
 function isValidSkillLevels(value: unknown): value is SkillLevels {
@@ -103,4 +111,10 @@ export interface GridConfig {
 
 export function getGridConfig(levels: SkillLevels): GridConfig {
   return { cols: BASE_GRID_SIZE + levels.gridWidth, rows: BASE_GRID_SIZE + levels.gridHeight }
+}
+
+export const BASE_BOUNTY_CAPACITY = 1
+
+export function getBountyCapacity(levels: SkillLevels): number {
+  return BASE_BOUNTY_CAPACITY + levels.bountyCapacity
 }

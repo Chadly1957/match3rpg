@@ -57,17 +57,24 @@ export function swapTiles(tiles: Tile[], idA: number, idB: number): Tile[] {
   })
 }
 
+export interface RunInfo {
+  orientation: 'row' | 'col'
+  // Cells in order along the run, so index 0 and index length-1 are its
+  // two ends — used to tell a corner (L-shape) from a crossing (T-shape)
+  // when two runs intersect.
+  cells: { row: number; col: number; id: number }[]
+}
+
 export interface MatchResult {
   ids: Set<number>
-  // Length of each distinct 3+-in-a-row run found (a swap can complete two
-  // runs at once — one through each swapped tile — and each scores
-  // separately, even though the matched cell sets can overlap). On bigger
-  // boards a single run can be longer than 3, which scores more.
-  runLengths: number[]
+  // Every distinct 3+-in-a-row run found (a swap can complete two runs at
+  // once — one through each swapped tile — and each scores separately,
+  // even though the matched cell sets can overlap).
+  runs: RunInfo[]
 }
 
 // Scans the whole board for every run of 3+ equal icons, horizontal and
-// vertical, and returns the matched tile ids plus each run's length.
+// vertical, and returns the matched tile ids plus each run's cells.
 // Multiple simultaneous matches all get flagged in one pass.
 export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResult {
   const grid: (Tile | undefined)[] = new Array(rows * cols)
@@ -76,7 +83,7 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   }
 
   const ids = new Set<number>()
-  const runLengths: number[] = []
+  const runs: RunInfo[] = []
 
   for (let row = 0; row < rows; row++) {
     let runStart = 0
@@ -85,11 +92,15 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
       const curr = col < cols ? grid[row * cols + col]?.type : undefined
       if (curr !== prev) {
         if (col - runStart >= 3) {
-          runLengths.push(col - runStart)
+          const cells: RunInfo['cells'] = []
           for (let c = runStart; c < col; c++) {
             const tile = grid[row * cols + c]
-            if (tile) ids.add(tile.id)
+            if (tile) {
+              ids.add(tile.id)
+              cells.push({ row, col: c, id: tile.id })
+            }
           }
+          runs.push({ orientation: 'row', cells })
         }
         runStart = col
       }
@@ -103,18 +114,61 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
       const curr = row < rows ? grid[row * cols + col]?.type : undefined
       if (curr !== prev) {
         if (row - runStart >= 3) {
-          runLengths.push(row - runStart)
+          const cells: RunInfo['cells'] = []
           for (let r = runStart; r < row; r++) {
             const tile = grid[r * cols + col]
-            if (tile) ids.add(tile.id)
+            if (tile) {
+              ids.add(tile.id)
+              cells.push({ row: r, col, id: tile.id })
+            }
           }
+          runs.push({ orientation: 'col', cells })
         }
         runStart = row
       }
     }
   }
 
-  return { ids, runLengths }
+  return { ids, runs }
+}
+
+export interface MatchShapes {
+  tShape: boolean
+  lShape: boolean
+}
+
+// A run crossing another run at right angles forms either a corner (both
+// runs meet at one of their ends — an L/corner shape) or a crossing (the
+// intersection falls in the middle of at least one run — a T or + shape).
+export function detectMatchShapes(runs: RunInfo[]): MatchShapes {
+  const rowRuns = runs.filter((r) => r.orientation === 'row')
+  const colRuns = runs.filter((r) => r.orientation === 'col')
+
+  let tShape = false
+  let lShape = false
+
+  for (const hRun of rowRuns) {
+    const crossRow = hRun.cells[0].row
+
+    for (const vRun of colRuns) {
+      const crossCol = vRun.cells[0].col
+
+      const hIndex = hRun.cells.findIndex((cell) => cell.col === crossCol)
+      const vIndex = vRun.cells.findIndex((cell) => cell.row === crossRow)
+      if (hIndex === -1 || vIndex === -1) continue // runs don't actually cross
+
+      const hIsEndpoint = hIndex === 0 || hIndex === hRun.cells.length - 1
+      const vIsEndpoint = vIndex === 0 || vIndex === vRun.cells.length - 1
+
+      if (hIsEndpoint && vIsEndpoint) {
+        lShape = true
+      } else {
+        tShape = true
+      }
+    }
+  }
+
+  return { tShape, lShape }
 }
 
 const BASE_RUN_POINTS = 30
@@ -128,8 +182,8 @@ function pointsForRunLength(length: number): number {
 // multiplies the base points, matching the "chains matter" feel of the RPG
 // scoring system. Longer runs (possible once the board is bigger than 3x3)
 // score more than a plain 3-in-a-row.
-export function scoreForMatch(runLengths: number[], combo: number): number {
-  const basePoints = runLengths.reduce((sum, length) => sum + pointsForRunLength(length), 0)
+export function scoreForMatch(runs: RunInfo[], combo: number): number {
+  const basePoints = runs.reduce((sum, run) => sum + pointsForRunLength(run.cells.length), 0)
   return basePoints * combo
 }
 

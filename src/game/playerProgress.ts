@@ -1,10 +1,10 @@
 // Player XP/level system (the character's RPG level — distinct from the
 // numbered game levels on the overworld map). XP required to advance grows
 // geometrically each level, which is the standard "each level takes
-// meaningfully longer than the last" RPG curve. Starting values (500 XP for
+// meaningfully longer than the last" RPG curve. Starting values (275 XP for
 // level 1→2, +25% per level) are a reasonable base to tune once real
 // playtesting data exists.
-const BASE_XP = 500
+const BASE_XP = 275
 const XP_GROWTH = 1.25
 
 const STORAGE_KEY = 'match3rpg.playerXp.v1'

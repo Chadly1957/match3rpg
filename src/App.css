@@ -235,6 +235,12 @@
   font-size: 18px;
 }
 
+.level-result-bounty {
+  color: var(--match);
+  font-weight: 600;
+  font-size: 14px;
+}
+
 .level-result-actions {
   display: flex;
   gap: 12px;
@@ -382,11 +388,16 @@
   z-index: 10;
 }
 
-.skill-tree-btn {
+.nav-row {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-btn {
   position: relative;
 }
 
-.skill-tree-badge {
+.nav-badge {
   position: absolute;
   top: -8px;
   right: -8px;
@@ -446,4 +457,10 @@
 .skill-card-btn:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.skill-card-btn--done {
+  background: var(--match);
+  color: var(--bg);
+  opacity: 1;
 }

@@ -3,14 +3,17 @@ import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { isLevelUnlocked, type Progress } from '../game/progress'
 import type { PlayerXpState } from '../game/playerProgress'
-import { availableSkillPoints, type SkillLevels } from '../game/skills'
+import { availableSkillPoints, getBountyCapacity, type SkillLevels } from '../game/skills'
+import type { BountyState } from '../game/bounties'
 
 interface OverworldProps {
   progress: Progress
   playerXp: PlayerXpState
   skillLevels: SkillLevels
+  bountyState: BountyState
   onSelectLevel: (levelId: number) => void
   onOpenSkillTree: () => void
+  onOpenBounties: () => void
 }
 
 // Bottom-to-top winding path: level 1 at the bottom, highest level at the
@@ -58,10 +61,14 @@ export default function Overworld({
   progress,
   playerXp,
   skillLevels,
+  bountyState,
   onSelectLevel,
   onOpenSkillTree,
+  onOpenBounties,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
+  const bountyCapacity = getBountyCapacity(skillLevels)
+  const openBountySlots = bountyCapacity - bountyState.selected.length
   const currentNodeRef = useRef<HTMLButtonElement>(null)
 
   // With up to 20 levels the map is taller than the viewport — jump to the
@@ -77,10 +84,16 @@ export default function Overworld({
       <h1 className="title">Overworld</h1>
       <XpBar xpState={playerXp} />
 
-      <button type="button" className="btn skill-tree-btn" onClick={onOpenSkillTree}>
-        Skill Tree
-        {points > 0 && <span className="skill-tree-badge">{points}</span>}
-      </button>
+      <div className="nav-row">
+        <button type="button" className="btn nav-btn" onClick={onOpenSkillTree}>
+          Skill Tree
+          {points > 0 && <span className="nav-badge">{points}</span>}
+        </button>
+        <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenBounties}>
+          Daily Bounties
+          {openBountySlots > 0 && <span className="nav-badge">{openBountySlots}</span>}
+        </button>
+      </div>
 
       <p className="message">Clear a level's goal score to unlock the next.</p>
 

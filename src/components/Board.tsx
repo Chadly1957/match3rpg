@@ -4,6 +4,7 @@ import Icon from './Icon'
 import {
   collapseAndRefill,
   createInitialTiles,
+  detectMatchShapes,
   findMatches,
   scoreForMatch,
   swapTiles,
@@ -28,9 +29,16 @@ function nextFrame(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
 }
 
+export interface BountyFlags {
+  tShape: boolean
+  lShape: boolean
+  doubleChain: boolean
+}
+
 export interface BoardResult {
   score: number
   passed: boolean
+  bountyFlags: BountyFlags
 }
 
 interface BoardProps extends BoardSize {
@@ -69,6 +77,10 @@ export default function Board({
   const scoreRef = useRef(0)
   const movesLeftRef = useRef(moveLimit)
   const finishedRef = useRef(false)
+  // Accumulated across the whole round (every swap and cascade), not reset
+  // per-swap, since a bounty just needs to happen at some point in the
+  // level, not on the specific move that ends it.
+  const bountyFlagsRef = useRef<BountyFlags>({ tShape: false, lShape: false, doubleChain: false })
 
   const busyRef = useRef(false)
   const boardRef = useRef<HTMLDivElement>(null)
@@ -141,7 +153,12 @@ export default function Board({
         setMatchedIds(matches.ids)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
 
-        scoreRef.current += scoreForMatch(matches.runLengths, combo)
+        const shapes = detectMatchShapes(matches.runs)
+        bountyFlagsRef.current.tShape ||= shapes.tShape
+        bountyFlagsRef.current.lShape ||= shapes.lShape
+        bountyFlagsRef.current.doubleChain ||= combo >= 2
+
+        scoreRef.current += scoreForMatch(matches.runs, combo)
         onScoreChange?.(scoreRef.current)
 
         await sleep(MATCH_HIGHLIGHT_MS)
@@ -172,7 +189,7 @@ export default function Board({
       if (outOfMoves) {
         finishedRef.current = true
         setMessage(reachedGoal ? 'Goal reached!' : 'Out of moves.')
-        onFinish({ score: scoreRef.current, passed: reachedGoal })
+        onFinish({ score: scoreRef.current, passed: reachedGoal, bountyFlags: bountyFlagsRef.current })
       } else {
         const comboText = combo > 1 ? `Chain of ${combo}! ` : ''
         const goalText = reachedGoal ? 'Goal reached! Keep going for bonus score! ' : ''
