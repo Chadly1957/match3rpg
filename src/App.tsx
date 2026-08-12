@@ -134,12 +134,14 @@ function App() {
   if (screen.name === 'level') {
     return (
       <GameScreen
+        key={screen.levelId}
         levelId={screen.levelId}
         playerXp={playerXp}
         skillLevels={skillLevels}
         bountyState={bountyState}
         bountyRewards={bountyRewards}
         onExit={handleExitToOverworld}
+        onSelectLevel={handleSelectLevel}
         onLevelResult={handleLevelResult}
       />
     )

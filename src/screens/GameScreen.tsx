@@ -22,6 +22,7 @@ interface GameScreenProps {
   bountyState: BountyState
   bountyRewards: BountyId[]
   onExit: () => void
+  onSelectLevel: (levelId: number) => void
   onLevelResult: (levelId: number, score: number, passed: boolean, bountyFlags: BountyFlags) => void
 }
 
@@ -32,9 +33,11 @@ export default function GameScreen({
   bountyState,
   bountyRewards,
   onExit,
+  onSelectLevel,
   onLevelResult,
 }: GameScreenProps) {
   const level = getLevel(levelId)
+  const nextLevel = getLevel(levelId + 1)
   const moveLimit = getMoveLimit(skillLevels)
   const { rows, cols } = getGridConfig(skillLevels)
   const hazardRate = getHazardRate(levelId)
@@ -133,9 +136,15 @@ export default function GameScreen({
               <p className="level-result-hint">Give it another shot.</p>
             )}
             <div className="level-result-actions">
-              <button type="button" className="btn" onClick={handleRetry}>
-                Retry
-              </button>
+              {result.passed && nextLevel ? (
+                <button type="button" className="btn" onClick={() => onSelectLevel(nextLevel.id)}>
+                  Next Level
+                </button>
+              ) : (
+                <button type="button" className="btn" onClick={handleRetry}>
+                  Retry
+                </button>
+              )}
               <button type="button" className="btn btn--ghost" onClick={onExit}>
                 Overworld
               </button>
