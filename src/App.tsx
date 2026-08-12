@@ -23,6 +23,7 @@ import {
   type SkillLevels,
 } from './game/skills'
 import {
+  capSelection,
   completeBounties,
   getBounty,
   loadBountyState,
@@ -112,7 +113,9 @@ function App() {
   }
 
   const handleRespecSkills = () => {
-    setSkillLevels(respecSkillLevels())
+    const nextSkillLevels = respecSkillLevels()
+    setSkillLevels(nextSkillLevels)
+    setBountyState((current) => capSelection(current, getBountyCapacity(nextSkillLevels)))
   }
 
   const handleToggleBounty = (bountyId: BountyId) => {

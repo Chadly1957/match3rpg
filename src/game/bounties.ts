@@ -126,6 +126,31 @@ export function loadBountyState(): BountyState {
   }
 }
 
+// Drops selected-but-not-yet-completed bounties past a capacity that just
+// shrank (e.g. a skill respec zeroing out Bounty Capacity points) — a
+// completed bounty is never dropped, since it's already been earned and
+// toggleBounty won't let the player back out of it anyway.
+export function capSelection(state: BountyState, capacity: number): BountyState {
+  let kept = 0
+  const selected = state.selected.filter((id) => {
+    if (state.completed.includes(id)) {
+      kept += 1
+      return true
+    }
+    if (kept < capacity) {
+      kept += 1
+      return true
+    }
+    return false
+  })
+
+  if (selected.length === state.selected.length) return state
+
+  const next: BountyState = { ...state, selected }
+  saveBountyState(next)
+  return next
+}
+
 export function toggleBounty(state: BountyState, bountyId: BountyId, capacity: number): BountyState {
   const isSelected = state.selected.includes(bountyId)
   const isCompleted = state.completed.includes(bountyId)
