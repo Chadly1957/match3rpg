@@ -12,19 +12,19 @@ export const BOUNTIES: BountyDef[] = [
     id: 'tShape',
     name: 'T-Shape Match',
     description: 'Make a T-shaped match in a level you clear.',
-    xpReward: 200,
+    xpReward: 300,
   },
   {
     id: 'lShape',
     name: 'L-Shape Match',
     description: 'Make an L-shaped match in a level you clear.',
-    xpReward: 200,
+    xpReward: 300,
   },
   {
     id: 'doubleChain',
     name: 'Double Chain',
     description: 'Trigger a cascade of at least 2 chained matches in a level you clear.',
-    xpReward: 200,
+    xpReward: 300,
   },
 ]
 
