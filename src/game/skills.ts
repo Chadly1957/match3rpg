@@ -1,4 +1,4 @@
-export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity'
+export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity' | 'scoreMultiplier'
 
 export interface SkillDef {
   id: SkillId
@@ -37,6 +37,12 @@ export const SKILLS: SkillDef[] = [
     // in a single day, not how many exist — raise it if that feels stingy.
     maxLevel: 2,
   },
+  {
+    id: 'scoreMultiplier',
+    name: 'Score Multiplier',
+    description: 'Matches are worth 15% more points per level, compounding.',
+    maxLevel: 10,
+  },
 ]
 
 export type SkillLevels = Record<SkillId, number>
@@ -44,7 +50,7 @@ export type SkillLevels = Record<SkillId, number>
 const STORAGE_KEY = 'match3rpg.skills.v1'
 
 function defaultSkillLevels(): SkillLevels {
-  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0 }
+  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0, scoreMultiplier: 0 }
 }
 
 function isValidSkillLevels(value: unknown): value is SkillLevels {
@@ -126,4 +132,13 @@ export const BASE_BOUNTY_CAPACITY = 1
 
 export function getBountyCapacity(levels: SkillLevels): number {
   return BASE_BOUNTY_CAPACITY + levels.bountyCapacity
+}
+
+const SCORE_MULTIPLIER_PER_LEVEL = 1.15
+
+// Compounding, same as XP/level growth: level 2 is 1.15x, level 3 is
+// 1.15^2 (~1.32x), and so on — each point makes the previous ones worth
+// more too, not just +15% flat each time.
+export function getScoreMultiplier(levels: SkillLevels): number {
+  return SCORE_MULTIPLIER_PER_LEVEL ** levels.scoreMultiplier
 }

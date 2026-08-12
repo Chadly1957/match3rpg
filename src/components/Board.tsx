@@ -51,6 +51,7 @@ interface BoardProps extends BoardSize {
   moveLimit: number
   goalScore: number
   hazardRate?: number
+  scoreMultiplier?: number
   onScoreChange?: (score: number) => void
   onMovesChange?: (movesLeft: number) => void
   onBountyProgress?: (flags: BountyFlags) => void
@@ -63,6 +64,7 @@ export default function Board({
   moveLimit,
   goalScore,
   hazardRate = 0,
+  scoreMultiplier = 1,
   onScoreChange,
   onMovesChange,
   onBountyProgress,
@@ -172,7 +174,7 @@ export default function Board({
         bountyFlagsRef.current.fourInRow ||= matches.runs.some((run) => run.cells.length >= 4)
         onBountyProgress?.({ ...bountyFlagsRef.current })
 
-        scoreRef.current += scoreForMatch(matches.runs, combo)
+        scoreRef.current += Math.round(scoreForMatch(matches.runs, combo) * scoreMultiplier)
         onScoreChange?.(scoreRef.current)
 
         await sleep(MATCH_HIGHLIGHT_MS)
@@ -221,6 +223,7 @@ export default function Board({
       applyTiles,
       goalScore,
       hazardRate,
+      scoreMultiplier,
       onBountyProgress,
       onFinish,
       onMovesChange,

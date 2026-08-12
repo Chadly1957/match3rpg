@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Board, { type BoardResult, type BountyFlags } from '../components/Board'
 import XpBar from '../components/XpBar'
 import { getHazardRate, getLevel } from '../game/levels'
-import { getGridConfig, getMoveLimit, type SkillLevels } from '../game/skills'
+import { getGridConfig, getMoveLimit, getScoreMultiplier, type SkillLevels } from '../game/skills'
 import { getBounty, type BountyId, type BountyState } from '../game/bounties'
 import { xpFromScore, type PlayerXpState } from '../game/playerProgress'
 
@@ -38,6 +38,7 @@ export default function GameScreen({
   const moveLimit = getMoveLimit(skillLevels)
   const { rows, cols } = getGridConfig(skillLevels)
   const hazardRate = getHazardRate(levelId)
+  const scoreMultiplier = getScoreMultiplier(skillLevels)
 
   const [attempt, setAttempt] = useState(0)
   const [score, setScore] = useState(0)
@@ -101,6 +102,7 @@ export default function GameScreen({
           moveLimit={moveLimit}
           goalScore={level.goalScore}
           hazardRate={hazardRate}
+          scoreMultiplier={scoreMultiplier}
           onScoreChange={setScore}
           onMovesChange={setMovesLeft}
           onBountyProgress={setLiveBountyFlags}
