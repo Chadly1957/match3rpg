@@ -1,8 +1,10 @@
+import LockIcon from '../components/LockIcon'
 import XpBar from '../components/XpBar'
 import {
   SKILLS,
   availableSkillPoints,
   canUpgradeSkill,
+  isSkillLocked,
   totalSkillPointsSpent,
   type SkillId,
   type SkillLevels,
@@ -57,9 +59,10 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
           const level = skillLevels[skill.id]
           const maxed = level >= skill.maxLevel
           const canUpgrade = canUpgradeSkill(skill.id, playerXp.level, skillLevels)
+          const locked = isSkillLocked(skill.id, playerXp.level, skillLevels)
 
           return (
-            <div key={skill.id} className="skill-card">
+            <div key={skill.id} className={locked ? 'skill-card skill-card--locked' : 'skill-card'}>
               <div className="skill-card-info">
                 <h2>{skill.name}</h2>
                 <p>{skill.description}</p>
@@ -67,14 +70,21 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
                   Level {level} / {skill.maxLevel}
                 </p>
               </div>
-              <button
-                type="button"
-                className="btn skill-card-btn"
-                disabled={!canUpgrade}
-                onClick={() => onUpgrade(skill.id)}
-              >
-                {maxed ? 'Max' : '+1'}
-              </button>
+              {locked ? (
+                <div className="skill-card-lock">
+                  <LockIcon className="skill-card-lock-icon" />
+                  <span>Unlocked at Player Level {skill.lock?.requiresPlayerLevel}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn skill-card-btn"
+                  disabled={!canUpgrade}
+                  onClick={() => onUpgrade(skill.id)}
+                >
+                  {maxed ? 'Max' : '+1'}
+                </button>
+              )}
             </div>
           )
         })}

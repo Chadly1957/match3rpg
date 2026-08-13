@@ -66,11 +66,19 @@ export function todayKey(): string {
   return `${year}-${month}-${day}`
 }
 
+// The player can only ever have one bounty active at a time, but can burn
+// through up to DAILY_BOUNTY_LIMIT of them across a single day — complete
+// one (or drop it unfinished) to free the slot back up for another pick.
+export const BOUNTY_SLOT_CAPACITY = 1
+export const DAILY_BOUNTY_LIMIT = 3
+
 export interface BountyState {
   date: string
-  // Bounties the player has chosen to pursue today (bounded by capacity).
+  // The bounty the player has chosen to pursue right now (at most
+  // BOUNTY_SLOT_CAPACITY entries).
   selected: BountyId[]
-  // Selected bounties already completed (and rewarded) today.
+  // Selected bounties already completed (and rewarded) today — capped at
+  // DAILY_BOUNTY_LIMIT for the day.
   completed: BountyId[]
 }
 
@@ -126,32 +134,7 @@ export function loadBountyState(): BountyState {
   }
 }
 
-// Drops selected-but-not-yet-completed bounties past a capacity that just
-// shrank (e.g. a skill respec zeroing out Bounty Capacity points) — a
-// completed bounty is never dropped, since it's already been earned and
-// toggleBounty won't let the player back out of it anyway.
-export function capSelection(state: BountyState, capacity: number): BountyState {
-  let kept = 0
-  const selected = state.selected.filter((id) => {
-    if (state.completed.includes(id)) {
-      kept += 1
-      return true
-    }
-    if (kept < capacity) {
-      kept += 1
-      return true
-    }
-    return false
-  })
-
-  if (selected.length === state.selected.length) return state
-
-  const next: BountyState = { ...state, selected }
-  saveBountyState(next)
-  return next
-}
-
-export function toggleBounty(state: BountyState, bountyId: BountyId, capacity: number): BountyState {
+export function toggleBounty(state: BountyState, bountyId: BountyId): BountyState {
   const isSelected = state.selected.includes(bountyId)
   const isCompleted = state.completed.includes(bountyId)
 
@@ -162,7 +145,10 @@ export function toggleBounty(state: BountyState, bountyId: BountyId, capacity: n
   if (isSelected) {
     selected = state.selected.filter((id) => id !== bountyId)
   } else {
-    if (state.selected.length >= capacity) return state
+    if (state.selected.length >= BOUNTY_SLOT_CAPACITY) return state
+    // Every bounty for the day has already been earned — no new pick until
+    // tomorrow's reset.
+    if (state.completed.length >= DAILY_BOUNTY_LIMIT) return state
     selected = [...state.selected, bountyId]
   }
 

@@ -14,7 +14,6 @@ import {
   type PlayerXpState,
 } from './game/playerProgress'
 import {
-  getBountyCapacity,
   loadSkillLevels,
   resetSkillLevels,
   respecSkillLevels,
@@ -23,7 +22,6 @@ import {
   type SkillLevels,
 } from './game/skills'
 import {
-  capSelection,
   completeBounties,
   getBounty,
   loadBountyState,
@@ -113,14 +111,11 @@ function App() {
   }
 
   const handleRespecSkills = () => {
-    const nextSkillLevels = respecSkillLevels()
-    setSkillLevels(nextSkillLevels)
-    setBountyState((current) => capSelection(current, getBountyCapacity(nextSkillLevels)))
+    setSkillLevels(respecSkillLevels())
   }
 
   const handleToggleBounty = (bountyId: BountyId) => {
-    const capacity = getBountyCapacity(skillLevels)
-    setBountyState(toggleBounty(bountyState, bountyId, capacity))
+    setBountyState(toggleBounty(bountyState, bountyId))
   }
 
   // Testing-only escape hatch: wipes every piece of persisted state
@@ -172,7 +167,6 @@ function App() {
     return (
       <DailyBounties
         bountyState={bountyState}
-        capacity={getBountyCapacity(skillLevels)}
         onToggle={handleToggleBounty}
         onExit={handleExitToOverworld}
       />

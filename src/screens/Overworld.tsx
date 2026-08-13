@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import LockIcon from '../components/LockIcon'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/progress'
 import type { PlayerXpState } from '../game/playerProgress'
-import { availableSkillPoints, getBountyCapacity, type SkillLevels } from '../game/skills'
-import type { BountyState } from '../game/bounties'
+import { availableSkillPoints, type SkillLevels } from '../game/skills'
+import { BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyState } from '../game/bounties'
 
 interface OverworldProps {
   progress: Progress
@@ -35,17 +36,6 @@ function getNodePosition(id: number, levelCount: number): { x: number; y: number
   const yPx = NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - id)
   const x = id % 2 === 1 ? 30 : 70
   return { x, y: (yPx / mapHeight) * 100 }
-}
-
-function LockIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="node-icon" aria-hidden="true">
-      <path
-        d="M7 10V8a5 5 0 0 1 10 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V8a3 3 0 0 0-6 0z"
-        fill="currentColor"
-      />
-    </svg>
-  )
 }
 
 function CheckIcon() {
@@ -79,8 +69,8 @@ export default function Overworld({
   onWipeProgress,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
-  const bountyCapacity = getBountyCapacity(skillLevels)
-  const openBountySlots = bountyCapacity - bountyState.selected.length
+  const hasOpenBountySlot =
+    bountyState.selected.length < BOUNTY_SLOT_CAPACITY && bountyState.completed.length < DAILY_BOUNTY_LIMIT
   const currentNodeRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [replayLevelId, setReplayLevelId] = useState<number | null>(null)
@@ -141,7 +131,7 @@ export default function Overworld({
           </button>
           <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenBounties}>
             Daily Bounties
-            {openBountySlots > 0 && <span className="nav-badge">{openBountySlots}</span>}
+            {hasOpenBountySlot && <span className="nav-badge">1</span>}
           </button>
         </div>
 
@@ -189,7 +179,13 @@ export default function Overworld({
                 onClick={() => (completed ? setReplayLevelId(level.id) : onSelectLevel(level.id))}
                 aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
               >
-                {completed ? <CheckIcon /> : status === 'locked' ? <LockIcon /> : <span className="node-number">{level.id}</span>}
+                {completed ? (
+                  <CheckIcon />
+                ) : status === 'locked' ? (
+                  <LockIcon className="node-icon" />
+                ) : (
+                  <span className="node-number">{level.id}</span>
+                )}
                 <span className="node-label">{level.name}</span>
                 <span className="node-goal">Goal {level.goalScore}</span>
                 {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}

@@ -1,13 +1,15 @@
-import { BOUNTIES, type BountyId, type BountyState } from '../game/bounties'
+import { BOUNTIES, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyId, type BountyState } from '../game/bounties'
 
 interface DailyBountiesProps {
   bountyState: BountyState
-  capacity: number
   onToggle: (bountyId: BountyId) => void
   onExit: () => void
 }
 
-export default function DailyBounties({ bountyState, capacity, onToggle, onExit }: DailyBountiesProps) {
+export default function DailyBounties({ bountyState, onToggle, onExit }: DailyBountiesProps) {
+  const dailyLimitReached = bountyState.completed.length >= DAILY_BOUNTY_LIMIT
+  const atCapacity = bountyState.selected.length >= BOUNTY_SLOT_CAPACITY
+
   return (
     <div className="screen">
       <div className="level-header">
@@ -18,16 +20,15 @@ export default function DailyBounties({ bountyState, capacity, onToggle, onExit 
       </div>
 
       <p className="message">
-        Pick up to {capacity} {capacity === 1 ? 'bounty' : 'bounties'} ({bountyState.selected.length}{' '}
-        / {capacity} selected). Complete one by clearing a level's goal while doing it — resets at
-        midnight.
+        {dailyLimitReached
+          ? `Daily bounty limit reached (${bountyState.completed.length} / ${DAILY_BOUNTY_LIMIT}) — more open up at midnight.`
+          : `1 bounty active at a time, up to ${DAILY_BOUNTY_LIMIT} per day (${bountyState.completed.length} / ${DAILY_BOUNTY_LIMIT} completed today). Complete it by clearing a level's goal while doing it.`}
       </p>
 
       <div className="skill-list">
         {BOUNTIES.map((bounty) => {
           const selected = bountyState.selected.includes(bounty.id)
           const completed = bountyState.completed.includes(bounty.id)
-          const atCapacity = bountyState.selected.length >= capacity
 
           let buttonLabel = 'Select'
           let buttonClass = 'btn btn--ghost skill-card-btn'
@@ -49,7 +50,7 @@ export default function DailyBounties({ bountyState, capacity, onToggle, onExit 
               <button
                 type="button"
                 className={buttonClass}
-                disabled={completed || (!selected && atCapacity)}
+                disabled={completed || (!selected && (atCapacity || dailyLimitReached))}
                 onClick={() => onToggle(bounty.id)}
               >
                 {buttonLabel}

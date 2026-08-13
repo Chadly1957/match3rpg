@@ -1,16 +1,28 @@
-export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'bountyCapacity' | 'scoreMultiplier' | 'arrowIcon'
+export type SkillId = 'moves' | 'gridWidth' | 'gridHeight' | 'scoreMultiplier' | 'arrowIcon'
 
 // Same ramp width as the hazard's 5-level climb (game level 5 to 10) —
 // point 1 unlocks the icon at the hazard's floor rate, point ARROW_MAX_LEVEL
 // reaches its ceiling rate.
 const ARROW_MAX_LEVEL = 6
 
+// A skill can gate part (or all) of its range behind a player level: no
+// point at skillLevel >= fromSkillLevel can be bought until the player has
+// reached requiresPlayerLevel, no matter how many skill points are sitting
+// unspent. Points below fromSkillLevel are unaffected.
+export interface SkillLock {
+  fromSkillLevel: number
+  requiresPlayerLevel: number
+}
+
 export interface SkillDef {
   id: SkillId
   name: string
   description: string
   maxLevel: number
+  lock?: SkillLock
 }
+
+const STAT_UNLOCK_PLAYER_LEVEL = 10
 
 // Caps are here mainly for sanity (an 8x8 board is already a lot of tiles
 // for a phone screen) — tune once there's real playtesting to go on.
@@ -20,6 +32,8 @@ export const SKILLS: SkillDef[] = [
     name: 'Extra Moves',
     description: 'Grants +1 move per level, on every stage.',
     maxLevel: 15,
+    // Levels 1-5 are open from the start; 6-15 need the player level.
+    lock: { fromSkillLevel: 6, requiresPlayerLevel: STAT_UNLOCK_PLAYER_LEVEL },
   },
   {
     id: 'gridWidth',
@@ -34,19 +48,11 @@ export const SKILLS: SkillDef[] = [
     maxLevel: 5,
   },
   {
-    id: 'bountyCapacity',
-    name: 'Bounty Capacity',
-    description: '+1 daily bounty slot you can take on at once.',
-    // Base 1 + up to 2 more = 3 concurrent bounty slots. There are more
-    // than 3 bounty types now, so this caps how many of them you can chase
-    // in a single day, not how many exist — raise it if that feels stingy.
-    maxLevel: 2,
-  },
-  {
     id: 'scoreMultiplier',
     name: 'Score Multiplier',
     description: 'Matches are worth 15% more points per level, compounding.',
     maxLevel: 10,
+    lock: { fromSkillLevel: 1, requiresPlayerLevel: STAT_UNLOCK_PLAYER_LEVEL },
   },
   {
     id: 'arrowIcon',
@@ -54,6 +60,7 @@ export const SKILLS: SkillDef[] = [
     description:
       'Unlocks the arrow icon, which can only match left-to-right and clears its whole row when it does. Further points raise how often it appears.',
     maxLevel: ARROW_MAX_LEVEL,
+    lock: { fromSkillLevel: 1, requiresPlayerLevel: STAT_UNLOCK_PLAYER_LEVEL },
   },
 ]
 
@@ -62,7 +69,7 @@ export type SkillLevels = Record<SkillId, number>
 const STORAGE_KEY = 'match3rpg.skills.v1'
 
 function defaultSkillLevels(): SkillLevels {
-  return { moves: 0, gridWidth: 0, gridHeight: 0, bountyCapacity: 0, scoreMultiplier: 0, arrowIcon: 0 }
+  return { moves: 0, gridWidth: 0, gridHeight: 0, scoreMultiplier: 0, arrowIcon: 0 }
 }
 
 function isValidSkillLevels(value: unknown): value is SkillLevels {
@@ -111,9 +118,21 @@ export function availableSkillPoints(playerLevel: number, levels: SkillLevels): 
   return totalSkillPointsEarned(playerLevel) - totalSkillPointsSpent(levels)
 }
 
+// True once the *next* point for this skill is gated behind a player level
+// the player hasn't reached yet — used to show a lock icon in the skill
+// tree rather than just a greyed-out "+1" (which reads as "no points left"
+// even when the real reason is the level gate).
+export function isSkillLocked(skillId: SkillId, playerLevel: number, levels: SkillLevels): boolean {
+  const def = SKILLS.find((skill) => skill.id === skillId)
+  if (!def?.lock) return false
+  const nextLevel = levels[skillId] + 1
+  return nextLevel >= def.lock.fromSkillLevel && playerLevel < def.lock.requiresPlayerLevel
+}
+
 export function canUpgradeSkill(skillId: SkillId, playerLevel: number, levels: SkillLevels): boolean {
   const def = SKILLS.find((skill) => skill.id === skillId)
   if (!def || levels[skillId] >= def.maxLevel) return false
+  if (isSkillLocked(skillId, playerLevel, levels)) return false
   return availableSkillPoints(playerLevel, levels) > 0
 }
 
@@ -149,12 +168,6 @@ export interface GridConfig {
 
 export function getGridConfig(levels: SkillLevels): GridConfig {
   return { cols: BASE_GRID_SIZE + levels.gridWidth, rows: BASE_GRID_SIZE + levels.gridHeight }
-}
-
-export const BASE_BOUNTY_CAPACITY = 1
-
-export function getBountyCapacity(levels: SkillLevels): number {
-  return BASE_BOUNTY_CAPACITY + levels.bountyCapacity
 }
 
 const SCORE_MULTIPLIER_PER_LEVEL = 1.15
