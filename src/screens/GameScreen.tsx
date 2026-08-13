@@ -11,7 +11,7 @@ import {
   type SkillLevels,
 } from '../game/skills'
 import { getBounty, type BountyId, type BountyState } from '../game/bounties'
-import { xpFromScore, type PlayerXpState } from '../game/playerProgress'
+import type { PlayerXpState } from '../game/playerProgress'
 
 const NO_BOUNTY_PROGRESS: BountyFlags = {
   tShape: false,
@@ -58,9 +58,11 @@ export default function GameScreen({
   const [movesLeft, setMovesLeft] = useState(moveLimit)
   const [liveBountyFlags, setLiveBountyFlags] = useState<BountyFlags>(NO_BOUNTY_PROGRESS)
   const [result, setResult] = useState<BoardResult | null>(null)
-  // Captured fresh at the start of each round (mount + every retry) so we
-  // can tell whether clearing THIS round pushed the player to a new level.
-  const [levelAtRoundStart, setLevelAtRoundStart] = useState(playerXp.level)
+  // Captured fresh at the start of each round (mount + every retry) so the
+  // XP bar has a real starting point to animate from, and so we can tell
+  // whether clearing THIS round pushed the player to a new level.
+  const [playerXpAtRoundStart, setPlayerXpAtRoundStart] = useState(playerXp)
+  const [xpAnimationDone, setXpAnimationDone] = useState(false)
 
   if (!level) {
     return (
@@ -85,12 +87,14 @@ export default function GameScreen({
     setScore(0)
     setMovesLeft(moveLimit)
     setLiveBountyFlags(NO_BOUNTY_PROGRESS)
-    setLevelAtRoundStart(playerXp.level)
+    setPlayerXpAtRoundStart(playerXp)
+    setXpAnimationDone(false)
     setAttempt((n) => n + 1)
   }
 
-  const leveledUp = result?.passed === true && playerXp.level > levelAtRoundStart
+  const leveledUp = result?.passed === true && playerXp.level > playerXpAtRoundStart.level
   const skillPoints = availableSkillPoints(playerXp.level, skillLevels)
+  const totalXpGained = result?.passed ? playerXp.totalXp - playerXpAtRoundStart.totalXp : 0
 
   return (
     <div className="screen">
@@ -138,7 +142,7 @@ export default function GameScreen({
             </p>
             {result.passed ? (
               <>
-                <p className="level-result-xp">+{xpFromScore(result.score)} XP</p>
+                <p className="level-result-xp level-result-xp--pop">+{totalXpGained} XP!</p>
                 {bountyRewards.map((id) => {
                   const bounty = getBounty(id)
                   if (!bounty) return null
@@ -148,8 +152,13 @@ export default function GameScreen({
                     </p>
                   )
                 })}
-                <XpBar xpState={playerXp} leveledUp={leveledUp} />
-                {leveledUp && (
+                <XpBar
+                  xpState={playerXp}
+                  leveledUp={leveledUp && xpAnimationDone}
+                  animateFrom={playerXpAtRoundStart}
+                  onAnimationComplete={() => setXpAnimationDone(true)}
+                />
+                {leveledUp && xpAnimationDone && (
                   <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenSkillTree}>
                     Assign Skills
                     {skillPoints > 0 && <span className="nav-badge">{skillPoints}</span>}
