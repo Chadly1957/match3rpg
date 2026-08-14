@@ -7,9 +7,11 @@ export const ICON_TYPES: IconType[] = ['star', 'square', 'circle']
 // scores nothing. It's destroyed the moment gravity carries it into the
 // bottom row.
 //
-// An arrow is a power tile: it only ever matches horizontally (never in a
-// column), and matching 3+ in a row detonates the whole row it's in,
-// clearing every tile across it and scoring the extras as bonus matches.
+// An arrow is a power tile: it matches normally, horizontally or
+// vertically, and completing a 3+ run detonates every row the run passes
+// through — a horizontal run wipes its one row, a vertical run wipes one
+// row per tile in the run — clearing every tile across those rows and
+// scoring the extras as bonus matches.
 export type TileType = IconType | 'hazard' | 'arrow'
 
 // A tile keeps a stable `id` across moves so React keeps the same DOM node

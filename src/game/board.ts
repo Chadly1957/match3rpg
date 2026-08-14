@@ -85,14 +85,11 @@ export interface MatchResult {
 
 // A hazard never matches — not even with another hazard — so it gets a key
 // unique to its own tile id, guaranteeing it never compares equal to
-// anything else on the board. An arrow matches normally along a row, but
-// never down a column — it gets the same unique-key treatment, just only
-// for the vertical pass.
-function matchKey(tile: Tile | undefined, orientation: 'row' | 'col'): string | undefined {
+// anything else on the board. Arrows match normally in both directions
+// (see arrowRowClearIds for what a completed arrow run actually does).
+function matchKey(tile: Tile | undefined): string | undefined {
   if (!tile) return undefined
-  if (tile.type === 'hazard') return `hazard-${tile.id}`
-  if (tile.type === 'arrow' && orientation === 'col') return `arrow-${tile.id}`
-  return tile.type
+  return tile.type === 'hazard' ? `hazard-${tile.id}` : tile.type
 }
 
 // Scans the whole board for every run of 3+ equal icons, horizontal and
@@ -110,8 +107,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let row = 0; row < rows; row++) {
     let runStart = 0
     for (let col = 1; col <= cols; col++) {
-      const prev = matchKey(grid[row * cols + (col - 1)], 'row')
-      const curr = col < cols ? matchKey(grid[row * cols + col], 'row') : undefined
+      const prev = matchKey(grid[row * cols + (col - 1)])
+      const curr = col < cols ? matchKey(grid[row * cols + col]) : undefined
       if (curr !== prev) {
         if (col - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -132,8 +129,8 @@ export function findMatches(tiles: Tile[], { rows, cols }: BoardSize): MatchResu
   for (let col = 0; col < cols; col++) {
     let runStart = 0
     for (let row = 1; row <= rows; row++) {
-      const prev = matchKey(grid[(row - 1) * cols + col], 'col')
-      const curr = row < rows ? matchKey(grid[row * cols + col], 'col') : undefined
+      const prev = matchKey(grid[(row - 1) * cols + col])
+      const curr = row < rows ? matchKey(grid[row * cols + col]) : undefined
       if (curr !== prev) {
         if (row - runStart >= 3) {
           const cells: RunInfo['cells'] = []
@@ -210,19 +207,21 @@ export function scoreForMatch(runs: RunInfo[], combo: number): number {
 }
 
 // A run of 3+ arrows scores like any other match (via scoreForMatch above),
-// but also detonates every other row it appears in: every tile across that
-// row gets cleared alongside the match, whatever type it is. Returns the ids
-// of those *extra* tiles (i.e. not already part of the match itself), so the
-// caller can add them to what gets cleared.
+// but also detonates every row the run passes through: every tile across
+// each of those rows gets cleared alongside the match, whatever type it is.
+// A horizontal run only ever touches its own row; a vertical run touches
+// one row per cell, so a 4-tall vertical run wipes 4 whole rows at once.
+// Returns the ids of those *extra* tiles (i.e. not already part of the
+// match itself), so the caller can add them to what gets cleared.
 export function arrowRowClearIds(tiles: Tile[], matches: MatchResult, { cols }: BoardSize): Set<number> {
   const grid = new Map<number, Tile>()
   for (const tile of tiles) grid.set(tile.row * cols + tile.col, tile)
 
   const arrowRows = new Set<number>()
   for (const run of matches.runs) {
-    if (run.orientation !== 'row') continue
     const isArrowRun = run.cells.every((cell) => grid.get(cell.row * cols + cell.col)?.type === 'arrow')
-    if (isArrowRun) arrowRows.add(run.cells[0].row)
+    if (!isArrowRun) continue
+    for (const cell of run.cells) arrowRows.add(cell.row)
   }
 
   const extraIds = new Set<number>()

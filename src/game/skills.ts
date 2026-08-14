@@ -58,7 +58,7 @@ export const SKILLS: SkillDef[] = [
     id: 'arrowIcon',
     name: 'Arrow Tile',
     description:
-      'Unlocks the arrow icon, which can only match left-to-right and clears its whole row when it does. Further points raise how often it appears.',
+      'Unlocks the arrow icon. Matching it wipes every row the match crosses. Further points raise how often it appears.',
     maxLevel: ARROW_MAX_LEVEL,
     lock: { fromSkillLevel: 1, requiresPlayerLevel: STAT_UNLOCK_PLAYER_LEVEL },
   },
