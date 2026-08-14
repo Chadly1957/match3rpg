@@ -99,7 +99,7 @@ export default function Overworld({
   const [replayLevelId, setReplayLevelId] = useState<number | null>(null)
   const [mapWidth, setMapWidth] = useState(getMapWidth)
 
-  // With up to 20 levels the map is taller than the viewport — jump to the
+  // With dozens of levels the map is taller than the viewport — jump to the
   // player's current level on load instead of always starting at level 1.
   useEffect(() => {
     currentNodeRef.current?.scrollIntoView({ block: 'center' })

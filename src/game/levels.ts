@@ -11,7 +11,7 @@ export interface LevelDef {
 // clean numbers.
 const BASE_GOAL = 250
 const GOAL_GROWTH = 1.25
-const LEVEL_COUNT = 20
+const LEVEL_COUNT = 40
 const ROUND_TO = 50
 
 function roundToNearest(value: number, step: number): number {
