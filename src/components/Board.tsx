@@ -4,6 +4,7 @@ import Icon from './Icon'
 import {
   arrowRowClearIds,
   collapseAndRefill,
+  crackAdjacentGlassHazards,
   createInitialTiles,
   detectMatchShapes,
   findMatches,
@@ -56,6 +57,7 @@ interface BoardProps extends BoardSize {
   moveLimit: number
   goalScore: number
   hazardRate?: number
+  hazardVariant?: 'hazard' | 'glassHazard'
   arrowRate?: number
   scoreMultiplier?: number
   onScoreChange?: (score: number) => void
@@ -70,6 +72,7 @@ export default function Board({
   moveLimit,
   goalScore,
   hazardRate = 0,
+  hazardVariant = 'hazard',
   arrowRate = 0,
   scoreMultiplier = 1,
   onScoreChange,
@@ -185,6 +188,7 @@ export default function Board({
         { rows, cols },
         hazardRate,
         arrowRate,
+        hazardVariant,
       )
       // flushSync forces each state update to commit as its own paint —
       // without it React may coalesce the spawn and settle updates into a
@@ -196,7 +200,7 @@ export default function Board({
       flushSync(() => applyTiles(settled))
       await sleep(FALL_DELAY_MS)
     },
-    [applyTiles, hazardRate, arrowRate, rows, cols],
+    [applyTiles, hazardRate, arrowRate, hazardVariant, rows, cols],
   )
 
   // After tiles settle, any hazard now sitting in the bottom row bounces
@@ -246,7 +250,17 @@ export default function Board({
         combo += 1
 
         const arrowExtraIds = arrowRowClearIds(tilesRef.current, matches, { rows, cols })
-        const clearedIds = arrowExtraIds.size > 0 ? new Set([...matches.ids, ...arrowExtraIds]) : matches.ids
+
+        // Cracking happens before we settle on this step's cleared-id set:
+        // any glass hazard adjacent to this match takes a hit, and a third
+        // hit adds it straight into what gets cleared (worth nothing).
+        const { updatedTiles, destroyedIds: crackedGlassIds } = crackAdjacentGlassHazards(tilesRef.current, matches)
+        applyTiles(updatedTiles)
+
+        const clearedIds =
+          arrowExtraIds.size > 0 || crackedGlassIds.size > 0
+            ? new Set([...matches.ids, ...arrowExtraIds, ...crackedGlassIds])
+            : matches.ids
 
         setMatchedIds(clearedIds)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
@@ -383,6 +397,7 @@ export default function Board({
             const isInvalid = invalidPair?.includes(tile.id) ?? false
             const isMatched = matchedIds.has(tile.id)
             const isHazard = tile.type === 'hazard'
+            const isGlassHazard = tile.type === 'glassHazard'
             const isArrow = tile.type === 'arrow'
 
             return (
@@ -403,12 +418,19 @@ export default function Board({
                     isInvalid ? 'tile-box--invalid' : '',
                     isMatched ? 'tile-box--matched' : '',
                     isHazard ? 'tile-box--hazard' : '',
+                    isGlassHazard ? 'tile-box--glass-hazard' : '',
                     isArrow ? 'tile-box--arrow' : '',
                   ]
                     .filter(Boolean)
                     .join(' ')}
                 >
                   <Icon type={tile.type} seed={tile.id} />
+                  {isGlassHazard && (tile.cracks ?? 0) > 0 && (
+                    <svg className={`glass-crack glass-crack--${tile.cracks}`} viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 3 L10.5 9 L14 10.5 L11 21" />
+                      {(tile.cracks ?? 0) >= 2 && <path d="M4 7 L10.5 9 M14 10.5 L20 14" />}
+                    </svg>
+                  )}
                 </div>
               </div>
             )

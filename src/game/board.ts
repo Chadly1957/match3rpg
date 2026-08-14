@@ -3,7 +3,7 @@ import { ICON_TYPES, type BoardSize, type IconType, type Tile, type TileType } f
 let nextTileId = 0
 
 function createTile(type: TileType, row: number, col: number): Tile {
-  return { id: nextTileId++, type, row, col }
+  return { id: nextTileId++, type, row, col, cracks: type === 'glassHazard' ? 0 : undefined }
 }
 
 export function randomIcon(): IconType {
@@ -12,10 +12,12 @@ export function randomIcon(): IconType {
 
 // Rolls what a newly-created fill tile should be: usually a normal icon,
 // occasionally a hazard once hazardRate is above 0 (see levels.ts for how
-// that rate ramps in starting around level 5), or an arrow power tile once
-// arrowRate is above 0 (unlocked and ramped via the Arrow Tile skill).
-function rollFillType(hazardRate: number, arrowRate: number): TileType {
-  if (hazardRate > 0 && Math.random() < hazardRate) return 'hazard'
+// that rate ramps in starting around level 5 — hazardVariant picks which
+// concrete hazard tile that roll produces, plain or glass), or an arrow
+// power tile once arrowRate is above 0 (unlocked and ramped via the Arrow
+// Tile skill).
+function rollFillType(hazardRate: number, arrowRate: number, hazardVariant: 'hazard' | 'glassHazard'): TileType {
+  if (hazardRate > 0 && Math.random() < hazardRate) return hazardVariant
   if (arrowRate > 0 && Math.random() < arrowRate) return 'arrow'
   return randomIcon()
 }
@@ -83,13 +85,14 @@ export interface MatchResult {
   runs: RunInfo[]
 }
 
-// A hazard never matches — not even with another hazard — so it gets a key
-// unique to its own tile id, guaranteeing it never compares equal to
-// anything else on the board. Arrows match normally in both directions
-// (see arrowRowClearIds for what a completed arrow run actually does).
+// A hazard (plain or glass) never matches — not even with another one of
+// its own kind — so it gets a key unique to its own tile id, guaranteeing
+// it never compares equal to anything else on the board. Arrows match
+// normally in both directions (see arrowRowClearIds for what a completed
+// arrow run actually does).
 function matchKey(tile: Tile | undefined): string | undefined {
   if (!tile) return undefined
-  return tile.type === 'hazard' ? `hazard-${tile.id}` : tile.type
+  return tile.type === 'hazard' || tile.type === 'glassHazard' ? `${tile.type}-${tile.id}` : tile.type
 }
 
 // Scans the whole board for every run of 3+ equal icons, horizontal and
@@ -235,14 +238,58 @@ export function arrowRowClearIds(tiles: Tile[], matches: MatchResult, { cols }: 
 }
 
 // Every icon an arrow row-clear sweeps up beyond the arrow match itself
-// scores as if it were one more tile in that match — hazards are along for
-// the ride but stay worth nothing, same as when they're cleared normally.
+// scores as if it were one more tile in that match — hazards (plain or
+// glass) are along for the ride but stay worth nothing, same as when
+// they're cleared normally.
 export function scoreForArrowWipe(tiles: Tile[], extraIds: Set<number>, combo: number): number {
   let scoringTiles = 0
   for (const tile of tiles) {
-    if (extraIds.has(tile.id) && tile.type !== 'hazard') scoringTiles += 1
+    if (extraIds.has(tile.id) && tile.type !== 'hazard' && tile.type !== 'glassHazard') scoringTiles += 1
   }
   return scoringTiles * EXTRA_TILE_POINTS * combo
+}
+
+export const GLASS_HAZARD_MAX_CRACKS = 3
+
+export interface GlassCrackResult {
+  // The full tile array with any newly-cracked (but not yet destroyed)
+  // glass hazards' `cracks` incremented — apply this before clearing
+  // destroyedIds so the crack visual is in place for the ones that survive.
+  updatedTiles: Tile[]
+  // Glass hazards that just took their third crack and should be cleared
+  // alongside the match, worth nothing.
+  destroyedIds: Set<number>
+}
+
+// A match made in a cell orthogonally adjacent to a glass hazard cracks it
+// once; the third crack destroys it outright, wherever it is on the board
+// (unlike a plain hazard, this has nothing to do with the bottom row).
+export function crackAdjacentGlassHazards(tiles: Tile[], matches: MatchResult): GlassCrackResult {
+  const matchedPositions = tiles
+    .filter((tile) => matches.ids.has(tile.id))
+    .map((tile) => ({ row: tile.row, col: tile.col }))
+
+  const destroyedIds = new Set<number>()
+
+  const updatedTiles = tiles.map((tile) => {
+    if (tile.type !== 'glassHazard') return tile
+
+    const isAdjacent = matchedPositions.some(
+      (pos) =>
+        (pos.row === tile.row && Math.abs(pos.col - tile.col) === 1) ||
+        (pos.col === tile.col && Math.abs(pos.row - tile.row) === 1),
+    )
+    if (!isAdjacent) return tile
+
+    const cracks = (tile.cracks ?? 0) + 1
+    if (cracks >= GLASS_HAZARD_MAX_CRACKS) {
+      destroyedIds.add(tile.id)
+      return tile
+    }
+    return { ...tile, cracks }
+  })
+
+  return { updatedTiles, destroyedIds }
 }
 
 // Drops surviving tiles down to fill the gaps left by cleared cells, and
@@ -254,17 +301,19 @@ export function scoreForArrowWipe(tiles: Tile[], extraIds: Set<number>, combo: n
 // survivors dropping and the new tiles falling in from above.
 //
 // hazardRate is the chance each newly-created fill tile is a hazard instead
-// of a normal icon, and arrowRate is the same for arrow power tiles. This
-// does one straightforward gravity pass — it does NOT special-case a hazard
-// landing in the bottom row; that's handled by the caller (see
-// ejectBottomHazards) so it can play out as a visible bounce-and-fall-off
-// animation instead of resolving invisibly here.
+// of a normal icon (hazardVariant picks which concrete one), and arrowRate
+// is the same for arrow power tiles. This does one straightforward gravity
+// pass — it does NOT special-case a plain hazard landing in the bottom
+// row; that's handled by the caller (see ejectBottomHazards) so it can
+// play out as a visible bounce-and-fall-off animation instead of resolving
+// invisibly here.
 export function collapseAndRefill(
   tiles: Tile[],
   clearedIds: Set<number>,
   { rows, cols }: BoardSize,
   hazardRate = 0,
   arrowRate = 0,
+  hazardVariant: 'hazard' | 'glassHazard' = 'hazard',
 ): { spawned: Tile[]; settled: Tile[] } {
   const survivors = tiles.filter((t) => !clearedIds.has(t.id))
   const settled: Tile[] = []
@@ -273,7 +322,9 @@ export function collapseAndRefill(
   for (let col = 0; col < cols; col++) {
     const originalColumn = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
     const missing = rows - originalColumn.length
-    const newTiles = Array.from({ length: missing }, () => createTile(rollFillType(hazardRate, arrowRate), 0, col))
+    const newTiles = Array.from({ length: missing }, () =>
+      createTile(rollFillType(hazardRate, arrowRate, hazardVariant), 0, col),
+    )
     const column = [...newTiles, ...originalColumn]
 
     column.forEach((tile, i) => {

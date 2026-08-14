@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Board, { type BoardResult, type BountyFlags } from '../components/Board'
 import Wiggle from '../components/Wiggle'
 import XpBar from '../components/XpBar'
-import { getHazardRate, getLevel } from '../game/levels'
+import { getHazardRate, getLevel, usesGlassHazard } from '../game/levels'
 import {
   availableSkillPoints,
   getArrowSpawnRate,
@@ -51,6 +51,7 @@ export default function GameScreen({
   const moveLimit = getMoveLimit(skillLevels)
   const { rows, cols } = getGridConfig(skillLevels)
   const hazardRate = getHazardRate(levelId)
+  const hazardVariant = usesGlassHazard(levelId) ? 'glassHazard' : 'hazard'
   const arrowRate = getArrowSpawnRate(skillLevels)
   const scoreMultiplier = getScoreMultiplier(skillLevels)
 
@@ -133,6 +134,7 @@ export default function GameScreen({
           moveLimit={moveLimit}
           goalScore={level.goalScore}
           hazardRate={hazardRate}
+          hazardVariant={hazardVariant}
           arrowRate={arrowRate}
           scoreMultiplier={scoreMultiplier}
           onScoreChange={setScore}

@@ -46,3 +46,12 @@ export function getHazardRate(id: number): number {
   const t = (id - HAZARD_START_LEVEL) / (HAZARD_RAMP_END_LEVEL - HAZARD_START_LEVEL)
   return HAZARD_MIN_RATE + t * (HAZARD_MAX_RATE - HAZARD_MIN_RATE)
 }
+
+// From this level on, every hazard spawn rolls as a glass hazard instead
+// of the classic X — same spawn rate (getHazardRate above), different
+// tile (see the TileType comment in types.ts for how it's destroyed).
+export const GLASS_HAZARD_START_LEVEL = 21
+
+export function usesGlassHazard(id: number): boolean {
+  return id >= GLASS_HAZARD_START_LEVEL
+}
