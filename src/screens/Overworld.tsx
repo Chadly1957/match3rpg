@@ -6,7 +6,7 @@ import { LEVELS } from '../game/levels'
 import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/progress'
 import type { PlayerXpState } from '../game/playerProgress'
 import { availableSkillPoints, type SkillLevels } from '../game/skills'
-import { BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyState } from '../game/bounties'
+import { activeSelection, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyState } from '../game/bounties'
 
 interface OverworldProps {
   progress: Progress
@@ -93,7 +93,7 @@ export default function Overworld({
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
   const hasOpenBountySlot =
-    bountyState.selected.length < BOUNTY_SLOT_CAPACITY && bountyState.completed.length < DAILY_BOUNTY_LIMIT
+    activeSelection(bountyState).length < BOUNTY_SLOT_CAPACITY && bountyState.completed.length < DAILY_BOUNTY_LIMIT
   const currentNodeRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [replayLevelId, setReplayLevelId] = useState<number | null>(null)

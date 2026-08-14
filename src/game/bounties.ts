@@ -134,6 +134,14 @@ export function loadBountyState(): BountyState {
   }
 }
 
+// A completed bounty stays in `selected` forever (so the day's board-bounty
+// list can keep showing it as redeemed) — it doesn't still occupy the
+// active slot, though, so capacity checks need to look only at picks that
+// aren't done yet.
+export function activeSelection(state: BountyState): BountyId[] {
+  return state.selected.filter((id) => !state.completed.includes(id))
+}
+
 export function toggleBounty(state: BountyState, bountyId: BountyId): BountyState {
   const isSelected = state.selected.includes(bountyId)
   const isCompleted = state.completed.includes(bountyId)
@@ -145,7 +153,7 @@ export function toggleBounty(state: BountyState, bountyId: BountyId): BountyStat
   if (isSelected) {
     selected = state.selected.filter((id) => id !== bountyId)
   } else {
-    if (state.selected.length >= BOUNTY_SLOT_CAPACITY) return state
+    if (activeSelection(state).length >= BOUNTY_SLOT_CAPACITY) return state
     // Every bounty for the day has already been earned — no new pick until
     // tomorrow's reset.
     if (state.completed.length >= DAILY_BOUNTY_LIMIT) return state

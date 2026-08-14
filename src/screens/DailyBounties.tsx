@@ -1,5 +1,12 @@
 import Wiggle from '../components/Wiggle'
-import { BOUNTIES, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyId, type BountyState } from '../game/bounties'
+import {
+  activeSelection,
+  BOUNTIES,
+  BOUNTY_SLOT_CAPACITY,
+  DAILY_BOUNTY_LIMIT,
+  type BountyId,
+  type BountyState,
+} from '../game/bounties'
 
 interface DailyBountiesProps {
   bountyState: BountyState
@@ -9,7 +16,7 @@ interface DailyBountiesProps {
 
 export default function DailyBounties({ bountyState, onToggle, onExit }: DailyBountiesProps) {
   const dailyLimitReached = bountyState.completed.length >= DAILY_BOUNTY_LIMIT
-  const atCapacity = bountyState.selected.length >= BOUNTY_SLOT_CAPACITY
+  const atCapacity = activeSelection(bountyState).length >= BOUNTY_SLOT_CAPACITY
 
   return (
     <div className="screen">
