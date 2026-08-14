@@ -408,7 +408,7 @@ export default function Board({
                     .filter(Boolean)
                     .join(' ')}
                 >
-                  <Icon type={tile.type} />
+                  <Icon type={tile.type} seed={tile.id} />
                 </div>
               </div>
             )

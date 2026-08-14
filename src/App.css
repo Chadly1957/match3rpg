@@ -254,6 +254,20 @@
   pointer-events: none;
 }
 
+.icon-mask--live {
+  animation: icon-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes icon-breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.08) rotate(-3deg);
+  }
+}
+
 .icon-mask--star {
   -webkit-mask-image: url('/icons/star.png');
   mask-image: url('/icons/star.png');

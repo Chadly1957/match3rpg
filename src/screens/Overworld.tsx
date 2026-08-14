@@ -21,22 +21,40 @@ interface OverworldProps {
 }
 
 // Bottom-to-top winding path: level 1 at the bottom, highest level at the
-// top, alternating left/right so the line zig-zags instead of running
-// straight up. Positions are percentages of the map container, so this
-// scales to however many levels LEVELS ends up with.
+// top, alternating left/right so the connectors zig-zag instead of running
+// straight up. Node positions are computed in real pixels (matching the
+// .map container's own CSS width formula, min(86vw, 360px), the same way
+// Board.tsx derives cell size from the viewport instead of measuring the
+// DOM) so the connector lines below can be trimmed by an exact pixel
+// radius rather than fighting SVG viewBox stretch.
 const NODE_SPACING_PX = 128
 const NODE_TOP_PADDING_PX = 60
 const NODE_BOTTOM_PADDING_PX = 60
+const NODE_RADIUS_PX = 28
+
+function getMapWidth(): number {
+  return Math.min(window.innerWidth * 0.86, 360)
+}
 
 function getMapHeight(levelCount: number): number {
   return NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - 1) + NODE_BOTTOM_PADDING_PX
 }
 
-function getNodePosition(id: number, levelCount: number): { x: number; y: number } {
-  const mapHeight = getMapHeight(levelCount)
-  const yPx = NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - id)
-  const x = id % 2 === 1 ? 30 : 70
-  return { x, y: (yPx / mapHeight) * 100 }
+function getNodePosition(id: number, levelCount: number, mapWidth: number): { x: number; y: number } {
+  const y = NODE_TOP_PADDING_PX + NODE_SPACING_PX * (levelCount - id)
+  const x = id % 2 === 1 ? mapWidth * 0.3 : mapWidth * 0.7
+  return { x, y }
+}
+
+// Trims a connector so it stops at the edge of each node's circle instead
+// of running to its center — otherwise the line is drawn straight under
+// the node, and shows through as an ugly cross-hatch wherever the node's
+// background isn't fully opaque.
+function insetToward(from: { x: number; y: number }, to: { x: number; y: number }, inset: number) {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  const len = Math.hypot(dx, dy) || 1
+  return { x: from.x + (dx / len) * inset, y: from.y + (dy / len) * inset }
 }
 
 function CheckIcon() {
@@ -75,11 +93,18 @@ export default function Overworld({
   const currentNodeRef = useRef<HTMLButtonElement>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [replayLevelId, setReplayLevelId] = useState<number | null>(null)
+  const [mapWidth, setMapWidth] = useState(getMapWidth)
 
   // With up to 20 levels the map is taller than the viewport — jump to the
   // player's current level on load instead of always starting at level 1.
   useEffect(() => {
     currentNodeRef.current?.scrollIntoView({ block: 'center' })
+  }, [])
+
+  useEffect(() => {
+    const compute = () => setMapWidth(getMapWidth())
+    window.addEventListener('resize', compute)
+    return () => window.removeEventListener('resize', compute)
   }, [])
 
   const mapHeight = getMapHeight(LEVELS.length)
@@ -142,19 +167,25 @@ export default function Overworld({
       </div>
 
       <div className="overworld-map-scroll">
-        <div className="map" style={{ height: mapHeight }}>
-          <svg className="map-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <div className="map" style={{ width: mapWidth, height: mapHeight }}>
+          <svg
+            className="map-lines"
+            viewBox={`0 0 ${mapWidth} ${mapHeight}`}
+            aria-hidden="true"
+          >
             {LEVELS.slice(0, -1).map((level, i) => {
-              const from = getNodePosition(level.id, LEVELS.length)
-              const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length)
+              const from = getNodePosition(level.id, LEVELS.length, mapWidth)
+              const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length, mapWidth)
+              const start = insetToward(from, to, NODE_RADIUS_PX)
+              const end = insetToward(to, from, NODE_RADIUS_PX)
               const active = level.id < progress.unlockedLevel
               return (
                 <line
                   key={level.id}
-                  x1={from.x}
-                  y1={from.y}
-                  x2={to.x}
-                  y2={to.y}
+                  x1={start.x}
+                  y1={start.y}
+                  x2={end.x}
+                  y2={end.y}
                   className={active ? 'map-line map-line--active' : 'map-line'}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -163,7 +194,7 @@ export default function Overworld({
           </svg>
 
           {LEVELS.map((level) => {
-            const pos = getNodePosition(level.id, LEVELS.length)
+            const pos = getNodePosition(level.id, LEVELS.length, mapWidth)
             const unlocked = isLevelUnlocked(progress, level.id)
             const completed = level.id < progress.unlockedLevel
             const isCurrent = level.id === progress.unlockedLevel
@@ -177,7 +208,7 @@ export default function Overworld({
                 ref={isCurrent ? currentNodeRef : undefined}
                 type="button"
                 className={`node node--${status}`}
-                style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                style={{ left: pos.x, top: pos.y }}
                 disabled={!unlocked}
                 onClick={() => (completed ? setReplayLevelId(level.id) : onSelectLevel(level.id))}
                 aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
