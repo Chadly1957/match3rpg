@@ -4,54 +4,12 @@ interface IconProps {
   type: TileType
 }
 
+// Every shape is one black-on-transparent PNG (public/icons/<type>.png)
+// recolored entirely in CSS via mask-image: the browser reads the PNG's
+// alpha channel as a stencil and paints background-color through it, so a
+// single asset per shape works for every color theme — no per-color image
+// exports needed. The actual pixel color inside the PNG doesn't matter,
+// only its transparency.
 export default function Icon({ type }: IconProps) {
-  switch (type) {
-    case 'star':
-      return (
-        <svg viewBox="0 0 24 24" className="icon-svg icon-star" aria-hidden="true">
-          <path
-            d="M12 2.5 15 9.2 22.2 10 16.8 14.7 18.4 21.8 12 18 5.6 21.8 7.2 14.7 1.8 10 9 9.2 Z"
-            fill="currentColor"
-          />
-        </svg>
-      )
-    case 'square':
-      return (
-        <svg viewBox="0 0 24 24" className="icon-svg icon-square" aria-hidden="true">
-          <rect x="3.5" y="3.5" width="17" height="17" rx="3" fill="currentColor" />
-        </svg>
-      )
-    case 'circle':
-      return (
-        <svg viewBox="0 0 24 24" className="icon-svg icon-circle" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" fill="currentColor" />
-        </svg>
-      )
-    case 'hazard':
-      return (
-        <svg viewBox="0 0 24 24" className="icon-svg icon-hazard" aria-hidden="true">
-          <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />
-          <path
-            d="M7 7 17 17M17 7 7 17"
-            stroke="var(--hazard-mark)"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      )
-    case 'arrow':
-      return (
-        <svg viewBox="0 0 24 24" className="icon-svg icon-arrow" aria-hidden="true">
-          <rect x="2" y="2" width="20" height="20" rx="4" fill="currentColor" />
-          <path
-            d="M4.5 12h15M4.5 12l4.5-4M4.5 12l4.5 4M19.5 12l-4.5-4M19.5 12l-4.5 4"
-            stroke="var(--arrow-mark)"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      )
-  }
+  return <span className={`icon-mask icon-mask--${type}`} aria-hidden="true" />
 }

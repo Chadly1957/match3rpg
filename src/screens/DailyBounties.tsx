@@ -1,3 +1,4 @@
+import Wiggle from '../components/Wiggle'
 import { BOUNTIES, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyId, type BountyState } from '../game/bounties'
 
 interface DailyBountiesProps {
@@ -14,9 +15,11 @@ export default function DailyBounties({ bountyState, onToggle, onExit }: DailyBo
     <div className="screen">
       <div className="level-header">
         <button type="button" className="btn btn--ghost" onClick={onExit}>
-          ← Overworld
+          <Wiggle>{'← Overworld'}</Wiggle>
         </button>
-        <h1 className="title">Daily Bounties</h1>
+        <h1 className="title">
+          <Wiggle>Daily Bounties</Wiggle>
+        </h1>
       </div>
 
       <p className="message">
@@ -43,7 +46,9 @@ export default function DailyBounties({ bountyState, onToggle, onExit }: DailyBo
           return (
             <div key={bounty.id} className="skill-card">
               <div className="skill-card-info">
-                <h2>{bounty.name}</h2>
+                <h2>
+                  <Wiggle>{bounty.name}</Wiggle>
+                </h2>
                 <p>{bounty.description}</p>
                 <p className="skill-card-level">+{bounty.xpReward} XP</p>
               </div>
@@ -53,7 +58,7 @@ export default function DailyBounties({ bountyState, onToggle, onExit }: DailyBo
                 disabled={completed || (!selected && (atCapacity || dailyLimitReached))}
                 onClick={() => onToggle(bounty.id)}
               >
-                {buttonLabel}
+                <Wiggle>{buttonLabel}</Wiggle>
               </button>
             </div>
           )

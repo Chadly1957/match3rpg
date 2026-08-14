@@ -1,3 +1,28 @@
+.wiggle {
+  display: inline-flex;
+}
+
+.wiggle-letter {
+  display: inline-block;
+  animation: letter-wiggle 2.4s ease-in-out infinite;
+}
+
+@keyframes letter-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-4deg) translateY(-1px);
+  }
+  50% {
+    transform: rotate(0deg) translateY(0.5px);
+  }
+  75% {
+    transform: rotate(4deg) translateY(-1px);
+  }
+}
+
 .screen {
   display: flex;
   flex-direction: column;
@@ -69,7 +94,8 @@
   right: 0;
   top: calc(100% + 8px);
   background: var(--board-bg);
-  border-radius: 12px;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-c);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   padding: 6px;
   min-width: 180px;
@@ -92,7 +118,7 @@
 }
 
 .menu-item:hover {
-  background: var(--cell-bg);
+  background: var(--chip-bg);
 }
 
 .menu-item--danger {
@@ -122,8 +148,7 @@
 .title {
   margin: 0;
   font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
+  font-weight: 800;
 }
 
 .message {
@@ -134,8 +159,8 @@
 
 .board {
   position: relative;
-  background: var(--board-bg);
-  border-radius: 20px;
+  background: var(--board-surface);
+  border-radius: var(--radius-a);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   overflow: hidden;
   touch-action: none;
@@ -161,7 +186,7 @@
   align-items: center;
   justify-content: center;
   background: var(--cell-bg);
-  border-radius: 14px;
+  border-radius: var(--radius-tile);
   cursor: grab;
   touch-action: none;
   user-select: none;
@@ -174,8 +199,8 @@
 }
 
 .tile-box--hover {
-  box-shadow: inset 0 0 0 3px var(--text);
-  background: color-mix(in srgb, var(--cell-bg) 70%, white 10%);
+  box-shadow: inset 0 0 0 3px var(--tile-ring);
+  background: color-mix(in srgb, var(--cell-bg) 70%, var(--tile-ring) 12%);
 }
 
 .tile-box--matched {
@@ -188,14 +213,14 @@
 
 @keyframes pulse-match {
   0% {
-    box-shadow: inset 0 0 0 0 var(--match);
+    box-shadow: inset 0 0 0 0 var(--tile-ring);
   }
   30% {
-    box-shadow: inset 0 0 0 4px var(--match);
-    background: color-mix(in srgb, var(--match) 30%, var(--cell-bg));
+    box-shadow: inset 0 0 0 4px var(--tile-ring);
+    background: color-mix(in srgb, var(--tile-ring) 22%, var(--cell-bg));
   }
   100% {
-    box-shadow: inset 0 0 0 0 var(--match);
+    box-shadow: inset 0 0 0 0 var(--tile-ring);
   }
 }
 
@@ -212,38 +237,54 @@
   }
 }
 
-.icon-svg {
-  width: 60%;
-  height: 60%;
+/* Shape icons are black-on-transparent PNGs (public/icons/<type>.png),
+   recolored via mask-image so a single asset per shape works across every
+   color theme — see Icon.tsx for the full explanation. */
+.icon-mask {
+  display: block;
+  width: 62%;
+  height: 62%;
+  background-color: var(--icon-color);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
   pointer-events: none;
 }
 
-.icon-star {
-  color: var(--star);
+.icon-mask--star {
+  -webkit-mask-image: url('/icons/star.png');
+  mask-image: url('/icons/star.png');
 }
 
-.icon-square {
-  color: var(--square);
+.icon-mask--square {
+  -webkit-mask-image: url('/icons/square.png');
+  mask-image: url('/icons/square.png');
 }
 
-.icon-circle {
-  color: var(--circle);
+.icon-mask--circle {
+  -webkit-mask-image: url('/icons/circle.png');
+  mask-image: url('/icons/circle.png');
 }
 
-.icon-hazard {
-  color: var(--hazard);
-  width: 100%;
-  height: 100%;
+.icon-mask--hazard {
+  -webkit-mask-image: url('/icons/hazard.png');
+  mask-image: url('/icons/hazard.png');
+  width: 82%;
+  height: 82%;
+}
+
+.icon-mask--arrow {
+  -webkit-mask-image: url('/icons/arrow.png');
+  mask-image: url('/icons/arrow.png');
+  width: 82%;
+  height: 82%;
 }
 
 .tile-box--hazard {
   box-shadow: inset 0 0 0 2px var(--hazard-mark);
-}
-
-.icon-arrow {
-  color: var(--arrow);
-  width: 100%;
-  height: 100%;
 }
 
 .tile-box--arrow {
@@ -253,10 +294,10 @@
 .btn {
   appearance: none;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-c);
   padding: 10px 18px;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 15px;
   color: var(--bg);
   background: var(--accent);
@@ -279,7 +320,7 @@
 
 .btn--ghost {
   color: var(--text);
-  background: var(--cell-bg);
+  background: var(--chip-bg);
 }
 
 .level-header {
@@ -300,7 +341,8 @@
   display: flex;
   gap: 24px;
   background: var(--board-bg);
-  border-radius: 14px;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-b);
   padding: 12px 24px;
 }
 
@@ -346,7 +388,8 @@
   align-items: center;
   gap: 10px;
   background: var(--board-bg);
-  border-radius: 10px;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-d);
   padding: 8px 14px;
   font-size: 13px;
   color: var(--text-dim);
@@ -404,8 +447,8 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: rgba(20, 12, 36, 0.92);
-  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.92);
+  border-radius: var(--radius-a);
   text-align: center;
   padding: 24px;
 }
@@ -464,7 +507,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(10, 6, 20, 0.6);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -474,7 +517,8 @@
 
 .modal {
   background: var(--board-bg);
-  border-radius: 20px;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-d);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
   padding: 24px;
   min-width: 260px;
@@ -545,7 +589,7 @@
   flex: 1;
   height: 10px;
   border-radius: 999px;
-  background: var(--cell-bg);
+  background: var(--chip-bg);
   overflow: hidden;
 }
 
@@ -617,7 +661,7 @@
   font-size: 20px;
   font-weight: 700;
   border: 3px solid var(--locked);
-  background: var(--cell-bg);
+  background: var(--chip-bg);
   box-sizing: border-box;
 }
 
@@ -726,8 +770,9 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--invalid);
-  color: var(--text);
+  background: var(--ink);
+  border: 2px solid var(--paper);
+  color: var(--paper);
   font-size: 12px;
   font-weight: 700;
   display: flex;
@@ -748,7 +793,8 @@
   justify-content: space-between;
   gap: 16px;
   background: var(--board-bg);
-  border-radius: 16px;
+  border: 2px solid var(--panel-border);
+  border-radius: var(--radius-b);
   padding: 16px 20px;
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import LockIcon from '../components/LockIcon'
+import Wiggle from '../components/Wiggle'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
 import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/progress'
@@ -95,7 +96,9 @@ export default function Overworld({
     <div className="overworld-screen">
       <div className="overworld-header">
         <div className="overworld-title-row">
-          <h1 className="title">Overworld</h1>
+          <h1 className="title">
+            <Wiggle>Overworld</Wiggle>
+          </h1>
           <div className="menu-wrap">
             <button
               type="button"
@@ -115,7 +118,7 @@ export default function Overworld({
                     className="menu-item menu-item--danger"
                     onClick={handleWipeClick}
                   >
-                    Wipe Progress
+                    <Wiggle>Wipe Progress</Wiggle>
                   </button>
                 </div>
               </>
@@ -126,11 +129,11 @@ export default function Overworld({
 
         <div className="nav-row">
           <button type="button" className="btn nav-btn" onClick={onOpenSkillTree}>
-            Skill Tree
+            <Wiggle>Skill Tree</Wiggle>
             {points > 0 && <span className="nav-badge">{points}</span>}
           </button>
           <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenBounties}>
-            Daily Bounties
+            <Wiggle>Daily Bounties</Wiggle>
             {hasOpenBountySlot && <span className="nav-badge">1</span>}
           </button>
         </div>
@@ -203,7 +206,9 @@ export default function Overworld({
         return (
           <div className="modal-backdrop" onClick={() => setReplayLevelId(null)}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <h2>{level.name}</h2>
+              <h2>
+                <Wiggle>{level.name}</Wiggle>
+              </h2>
               <p className="modal-replay-count">
                 {remaining > 0
                   ? `${remaining} ${remaining === 1 ? 'Replay' : 'Replays'} Remaining`
@@ -219,10 +224,10 @@ export default function Overworld({
                     onReplayLevel(level.id)
                   }}
                 >
-                  Play
+                  <Wiggle>Play</Wiggle>
                 </button>
                 <button type="button" className="btn btn--ghost" onClick={() => setReplayLevelId(null)}>
-                  Overworld
+                  <Wiggle>Overworld</Wiggle>
                 </button>
               </div>
             </div>

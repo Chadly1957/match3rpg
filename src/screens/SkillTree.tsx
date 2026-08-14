@@ -1,4 +1,5 @@
 import LockIcon from '../components/LockIcon'
+import Wiggle from '../components/Wiggle'
 import XpBar from '../components/XpBar'
 import {
   SKILLS,
@@ -34,9 +35,11 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
     <div className="screen">
       <div className="level-header">
         <button type="button" className="btn btn--ghost" onClick={onExit}>
-          ← Overworld
+          <Wiggle>{'← Overworld'}</Wiggle>
         </button>
-        <h1 className="title">Skill Tree</h1>
+        <h1 className="title">
+          <Wiggle>Skill Tree</Wiggle>
+        </h1>
       </div>
 
       <XpBar xpState={playerXp} />
@@ -51,7 +54,7 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
         disabled={spent === 0}
         onClick={handleRespecClick}
       >
-        Respec ({spent} point{spent === 1 ? '' : 's'})
+        <Wiggle>{`Respec (${spent} point${spent === 1 ? '' : 's'})`}</Wiggle>
       </button>
 
       <div className="skill-list">
@@ -64,7 +67,9 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
           return (
             <div key={skill.id} className={locked ? 'skill-card skill-card--locked' : 'skill-card'}>
               <div className="skill-card-info">
-                <h2>{skill.name}</h2>
+                <h2>
+                  <Wiggle>{skill.name}</Wiggle>
+                </h2>
                 <p>{skill.description}</p>
                 <p className="skill-card-level">
                   Level {level} / {skill.maxLevel}
@@ -82,7 +87,7 @@ export default function SkillTree({ playerXp, skillLevels, onUpgrade, onRespec, 
                   disabled={!canUpgrade}
                   onClick={() => onUpgrade(skill.id)}
                 >
-                  {maxed ? 'Max' : '+1'}
+                  <Wiggle>{maxed ? 'Max' : '+1'}</Wiggle>
                 </button>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Board, { type BoardResult, type BountyFlags } from '../components/Board'
+import Wiggle from '../components/Wiggle'
 import XpBar from '../components/XpBar'
 import { getHazardRate, getLevel } from '../game/levels'
 import {
@@ -69,7 +70,7 @@ export default function GameScreen({
       <div className="screen">
         <p className="message">Level not found.</p>
         <button type="button" className="btn" onClick={onExit}>
-          Back to overworld
+          <Wiggle>Back to overworld</Wiggle>
         </button>
       </div>
     )
@@ -100,20 +101,26 @@ export default function GameScreen({
     <div className="screen">
       <div className="level-header">
         <button type="button" className="btn btn--ghost" onClick={onExit}>
-          ← Overworld
+          <Wiggle>{'← Overworld'}</Wiggle>
         </button>
-        <h1 className="title">{level.name}</h1>
+        <h1 className="title">
+          <Wiggle>{level.name}</Wiggle>
+        </h1>
       </div>
 
       <div className="hud">
         <div className="hud-stat">
-          <span className="hud-label">Score</span>
+          <span className="hud-label">
+            <Wiggle>Score</Wiggle>
+          </span>
           <span className={goalReached ? 'hud-value hud-value--goal' : 'hud-value'}>
             {score} <span className="hud-goal">/ {level.goalScore}</span>
           </span>
         </div>
         <div className="hud-stat">
-          <span className="hud-label">Moves</span>
+          <span className="hud-label">
+            <Wiggle>Moves</Wiggle>
+          </span>
           <span className="hud-value">{movesLeft}</span>
         </div>
       </div>
@@ -136,7 +143,9 @@ export default function GameScreen({
 
         {result && (
           <div className="level-result">
-            <h2>{result.passed ? 'Level Complete!' : 'Out of Moves'}</h2>
+            <h2>
+              <Wiggle>{result.passed ? 'Level Complete!' : 'Out of Moves'}</Wiggle>
+            </h2>
             <p>
               Final score: {result.score} / {level.goalScore}
             </p>
@@ -160,7 +169,7 @@ export default function GameScreen({
                 />
                 {leveledUp && xpAnimationDone && (
                   <button type="button" className="btn btn--ghost nav-btn" onClick={onOpenSkillTree}>
-                    Assign Skills
+                    <Wiggle>Assign Skills</Wiggle>
                     {skillPoints > 0 && <span className="nav-badge">{skillPoints}</span>}
                   </button>
                 )}
@@ -171,15 +180,15 @@ export default function GameScreen({
             <div className="level-result-actions">
               {result.passed && nextLevel ? (
                 <button type="button" className="btn" onClick={() => onSelectLevel(nextLevel.id)}>
-                  Next Level
+                  <Wiggle>Next Level</Wiggle>
                 </button>
               ) : (
                 <button type="button" className="btn" onClick={handleRetry}>
-                  Retry
+                  <Wiggle>Retry</Wiggle>
                 </button>
               )}
               <button type="button" className="btn btn--ghost" onClick={onExit}>
-                Overworld
+                <Wiggle>Overworld</Wiggle>
               </button>
             </div>
           </div>

@@ -1,22 +1,52 @@
 :root {
-  --bg: #1b1230;
-  --board-bg: #2a1b45;
-  --cell-bg: #3a2761;
-  --text: #f3f0fa;
-  --text-dim: #b6a9d6;
-  --star: #ffd23f;
-  --square: #4fc3f7;
-  --circle: #ff6b81;
-  --match: #4ade80;
-  --invalid: #f87171;
-  --locked: #453a63;
-  --accent: #ffd23f;
-  --hazard: #16101f;
-  --hazard-mark: #ff5c5c;
-  --arrow: #7c5cff;
-  --arrow-mark: #f3f0fa;
+  /* The whole "mono" theme is built from exactly these two colors — every
+     other token below is one of them, or one of them at reduced opacity for
+     de-emphasis (never a third hue). This is deliberately the ONLY theme
+     definition for now; future unlockable themes swap this whole block via
+     a [data-theme="..."] selector without any component needing to change. */
+  --ink: #000000;
+  --paper: #ffffff;
 
-  font: 18px/145% system-ui, 'Segoe UI', Roboto, sans-serif;
+  --bg: var(--ink);
+  /* The match-3 board itself is the one surface that flips polarity — a
+     paper card sitting on the ink background — everything else (HUD,
+     modal, menu, cards) stays an ink panel with a paper outline. */
+  --board-surface: var(--paper);
+  --board-bg: var(--ink);
+  --panel-border: var(--paper);
+
+  /* Individual tile cells barely differentiate from the paper board; chips
+     are the equivalent subtle surface for ink-panel contexts (ghost
+     buttons, the xp track, a locked map node). */
+  --cell-bg: transparent;
+  --chip-bg: rgba(255, 255, 255, 0.14);
+
+  --text: var(--paper);
+  --text-dim: rgba(255, 255, 255, 0.55);
+  --icon-color: var(--ink);
+  /* Feedback rings/highlights drawn on the paper board (hover, match flash,
+     drag) need the opposite polarity from --text/--match, which assume a
+     dark panel background. */
+  --tile-ring: var(--ink);
+
+  --accent: var(--paper);
+  --match: var(--paper);
+  --invalid: var(--paper);
+  --locked: rgba(255, 255, 255, 0.28);
+
+  --hazard-mark: var(--ink);
+  --arrow: rgba(0, 0, 0, 0.5);
+
+  /* Every corner of a box uses a slightly different radius so nothing
+     reads as a machine-perfect rounded rect — a handful of fixed presets
+     rather than per-element randomness, so layout stays deterministic. */
+  --radius-a: 22px 28px 20px 26px;
+  --radius-b: 28px 20px 26px 22px;
+  --radius-c: 20px 26px 22px 28px;
+  --radius-d: 26px 22px 28px 20px;
+  --radius-tile: 10px 14px 9px 13px;
+
+  font: 500 18px/145% 'Grandstander', 'Comic Sans MS', system-ui, sans-serif;
   color-scheme: dark;
   color: var(--text);
   background: var(--bg);

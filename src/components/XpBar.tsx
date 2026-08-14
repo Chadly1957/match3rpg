@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Wiggle from './Wiggle'
 import { xpRequiredForLevel, type PlayerXpState } from '../game/playerProgress'
 
 interface XpBarProps {
@@ -92,7 +93,9 @@ export default function XpBar({ xpState, leveledUp = false, animateFrom, onAnima
 
   return (
     <div className="xp-bar">
-      <div className="xp-bar-level">Lv {display.level}</div>
+      <div className="xp-bar-level">
+        <Wiggle>{`Lv ${display.level}`}</Wiggle>
+      </div>
       <div className="xp-bar-track">
         <div
           className={instantFill ? 'xp-bar-fill xp-bar-fill--instant' : 'xp-bar-fill'}
@@ -102,7 +105,11 @@ export default function XpBar({ xpState, leveledUp = false, animateFrom, onAnima
       <div className="xp-bar-text">
         {display.xpIntoLevel} / {display.xpForNextLevel} XP
       </div>
-      {(leveledUp || justLeveledUp) && <div className="xp-bar-levelup">Leveled Up!</div>}
+      {(leveledUp || justLeveledUp) && (
+        <div className="xp-bar-levelup">
+          <Wiggle>Leveled Up!</Wiggle>
+        </div>
+      )}
     </div>
   )
 }
