@@ -35,7 +35,7 @@
   --locked: rgba(255, 255, 255, 0.28);
 
   --hazard-mark: var(--ink);
-  --glass-hazard-mark: var(--ink);
+  --glass-hazard-mark: var(--paper);
   --arrow: rgba(0, 0, 0, 0.5);
 
   /* Every corner of a box uses a slightly different radius so nothing

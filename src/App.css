@@ -300,8 +300,8 @@
 .icon-mask--glassHazard {
   -webkit-mask-image: url('/icons/glassHazard.png');
   mask-image: url('/icons/glassHazard.png');
-  width: 82%;
-  height: 82%;
+  width: 92%;
+  height: 92%;
 }
 
 .tile-box--hazard {
@@ -310,7 +310,6 @@
 
 .tile-box--glass-hazard {
   position: relative;
-  box-shadow: inset 0 0 0 2px var(--glass-hazard-mark);
 }
 
 /* Crack lines drawn over the glass hazard icon, revealed a stage at a time
