@@ -31,6 +31,10 @@ const NODE_SPACING_PX = 128
 const NODE_TOP_PADDING_PX = 60
 const NODE_BOTTOM_PADDING_PX = 60
 const NODE_RADIUS_PX = 28
+// Extra breathing room beyond the node's edge, so the connector visibly
+// stops short of each circle instead of just kissing its outline.
+const NODE_LINE_GAP_PX = 20
+const NODE_LINE_INSET_PX = NODE_RADIUS_PX + NODE_LINE_GAP_PX
 
 function getMapWidth(): number {
   return Math.min(window.innerWidth * 0.86, 360)
@@ -176,8 +180,8 @@ export default function Overworld({
             {LEVELS.slice(0, -1).map((level, i) => {
               const from = getNodePosition(level.id, LEVELS.length, mapWidth)
               const to = getNodePosition(LEVELS[i + 1].id, LEVELS.length, mapWidth)
-              const start = insetToward(from, to, NODE_RADIUS_PX)
-              const end = insetToward(to, from, NODE_RADIUS_PX)
+              const start = insetToward(from, to, NODE_LINE_INSET_PX)
+              const end = insetToward(to, from, NODE_LINE_INSET_PX)
               const active = level.id < progress.unlockedLevel
               return (
                 <line
