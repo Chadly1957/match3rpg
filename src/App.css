@@ -62,10 +62,22 @@
 }
 
 .menu-wrap {
+  /* Deliberately NOT a transform-based vertical center (top:50% +
+     translateY): a transform on an ancestor becomes the containing block
+     for any position:fixed descendant, which would shrink .menu-backdrop's
+     "cover the viewport" inset:0 down to this small box instead — and
+     also traps the backdrop/dropdown's z-index in a stacking context that
+     paints below later DOM siblings like the nav-row buttons. Stretching
+     to the row's full height and centering the button with flexbox avoids
+     both problems.
+  */
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  z-index: 25;
 }
 
 .menu-btn {
@@ -86,6 +98,7 @@
 .menu-backdrop {
   position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   z-index: 20;
 }
 
