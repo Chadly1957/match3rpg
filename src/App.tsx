@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import GameScreen from './screens/GameScreen'
 import Overworld from './screens/Overworld'
 import SkillTree from './screens/SkillTree'
@@ -30,6 +30,7 @@ import {
   type BountyId,
   type BountyState,
 } from './game/bounties'
+import { loadTheme, saveTheme, type ThemeId } from './game/theme'
 import './App.css'
 
 type Screen =
@@ -47,6 +48,19 @@ function App() {
   const [bountyState, setBountyState] = useState<BountyState>(() => loadBountyState())
   const [bountyRewards, setBountyRewards] = useState<BountyId[]>([])
   const [screen, setScreen] = useState<Screen>({ name: 'overworld' })
+  const [theme, setTheme] = useState<ThemeId>(() => loadTheme())
+
+  // The theme lives on the document root (not a wrapper div) so every
+  // themed CSS variable in index.css applies from the very top down,
+  // exactly like the light/dark handling any other themed page would use.
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [theme])
+
+  const handleSelectTheme = (nextTheme: ThemeId) => {
+    setTheme(nextTheme)
+    saveTheme(nextTheme)
+  }
 
   const handleSelectLevel = (levelId: number) => {
     // Loading fresh here (rather than trusting the state from a previous
@@ -179,11 +193,13 @@ function App() {
       playerXp={playerXp}
       skillLevels={skillLevels}
       bountyState={bountyState}
+      theme={theme}
       onSelectLevel={handleSelectLevel}
       onReplayLevel={handleReplayLevel}
       onOpenSkillTree={handleOpenSkillTree}
       onOpenBounties={handleOpenBounties}
       onWipeProgress={handleWipeProgress}
+      onSelectTheme={handleSelectTheme}
     />
   )
 }

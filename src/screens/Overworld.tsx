@@ -7,17 +7,20 @@ import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/pro
 import type { PlayerXpState } from '../game/playerProgress'
 import { availableSkillPoints, type SkillLevels } from '../game/skills'
 import { activeSelection, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyState } from '../game/bounties'
+import { THEMES, type ThemeId } from '../game/theme'
 
 interface OverworldProps {
   progress: Progress
   playerXp: PlayerXpState
   skillLevels: SkillLevels
   bountyState: BountyState
+  theme: ThemeId
   onSelectLevel: (levelId: number) => void
   onReplayLevel: (levelId: number) => void
   onOpenSkillTree: () => void
   onOpenBounties: () => void
   onWipeProgress: () => void
+  onSelectTheme: (theme: ThemeId) => void
 }
 
 // Bottom-to-top winding path: level 1 at the bottom, highest level at the
@@ -85,11 +88,13 @@ export default function Overworld({
   playerXp,
   skillLevels,
   bountyState,
+  theme,
   onSelectLevel,
   onReplayLevel,
   onOpenSkillTree,
   onOpenBounties,
   onWipeProgress,
+  onSelectTheme,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
   const hasOpenBountySlot =
@@ -142,6 +147,23 @@ export default function Overworld({
               <>
                 <div className="menu-backdrop" onClick={() => setMenuOpen(false)} />
                 <div className="menu-dropdown">
+                  <div className="menu-section-label">
+                    <Wiggle>Theme</Wiggle>
+                  </div>
+                  {THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={
+                        theme === t.id ? 'menu-item menu-theme-item menu-theme-item--active' : 'menu-item menu-theme-item'
+                      }
+                      onClick={() => onSelectTheme(t.id)}
+                    >
+                      <span className="menu-theme-swatch" style={{ background: t.swatch }} aria-hidden="true" />
+                      <Wiggle>{t.name}</Wiggle>
+                    </button>
+                  ))}
+                  <div className="menu-divider" />
                   <button
                     type="button"
                     className="menu-item menu-item--danger"

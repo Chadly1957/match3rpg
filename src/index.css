@@ -1,9 +1,10 @@
 :root {
-  /* The whole "mono" theme is built from exactly these two colors — every
-     other token below is one of them, or one of them at reduced opacity for
-     de-emphasis (never a third hue). This is deliberately the ONLY theme
-     definition for now; future unlockable themes swap this whole block via
-     a [data-theme="..."] selector without any component needing to change. */
+  /* Every theme is built from exactly these two colors — every other token
+     below is one of them, or one of them at reduced opacity for
+     de-emphasis (never a third hue). This block is the default "mono"
+     theme; other themes (see [data-theme="blue"] below, and game/theme.ts
+     for the picker) just override --ink/--paper here, and every derived
+     token follows automatically — no component ever needs to change. */
   --ink: #000000;
   --paper: #ffffff;
 
@@ -17,12 +18,13 @@
 
   /* Individual tile cells barely differentiate from the paper board; chips
      are the equivalent subtle surface for ink-panel contexts (ghost
-     buttons, the xp track, a locked map node). */
+     buttons, the xp track, a locked map node). Derived from --paper (not a
+     literal white) so a theme swap carries through to these too. */
   --cell-bg: transparent;
-  --chip-bg: rgba(255, 255, 255, 0.14);
+  --chip-bg: color-mix(in srgb, var(--paper) 14%, transparent);
 
   --text: var(--paper);
-  --text-dim: rgba(255, 255, 255, 0.55);
+  --text-dim: color-mix(in srgb, var(--paper) 55%, transparent);
   --icon-color: var(--ink);
   /* Feedback rings/highlights drawn on the paper board (hover, match flash,
      drag) need the opposite polarity from --text/--match, which assume a
@@ -32,7 +34,7 @@
   --accent: var(--paper);
   --match: var(--paper);
   --invalid: var(--paper);
-  --locked: rgba(255, 255, 255, 0.28);
+  --locked: color-mix(in srgb, var(--paper) 28%, transparent);
 
   --hazard-mark: var(--ink);
   --glass-hazard-mark: var(--paper);
@@ -55,6 +57,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light Blue theme: --paper swaps from white to a soft sky blue; --ink
+   stays black. Every other token derives from these two already, so this
+   one override is the entire theme. */
+:root[data-theme='blue'] {
+  --paper: #a6d8ff;
 }
 
 * {

@@ -125,6 +125,39 @@
   color: var(--invalid);
 }
 
+.menu-section-label {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.menu-divider {
+  height: 1px;
+  margin: 6px 4px;
+  background: var(--chip-bg);
+}
+
+.menu-theme-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-theme-item--active {
+  background: var(--chip-bg);
+}
+
+.menu-theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--panel-border);
+  flex-shrink: 0;
+}
+
 .overworld-map-scroll {
   flex: 1;
   width: 100%;
