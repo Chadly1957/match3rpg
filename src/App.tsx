@@ -30,7 +30,7 @@ import {
   type BountyId,
   type BountyState,
 } from './game/bounties'
-import { loadTheme, saveTheme, type ThemeId } from './game/theme'
+import { isThemeUnlocked, loadTheme, saveTheme, THEMES, type ThemeId } from './game/theme'
 import './App.css'
 
 type Screen =
@@ -58,6 +58,10 @@ function App() {
   }, [theme])
 
   const handleSelectTheme = (nextTheme: ThemeId) => {
+    const def = THEMES.find((t) => t.id === nextTheme)
+    // Belt-and-suspenders: the menu already disables a locked theme's
+    // button, but don't trust the UI alone to enforce the unlock.
+    if (!def || !isThemeUnlocked(def, progress.unlockedLevel, playerXp.level)) return
     setTheme(nextTheme)
     saveTheme(nextTheme)
   }

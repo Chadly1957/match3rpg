@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import LockIcon from '../components/LockIcon'
+import ThemeSwatch from '../components/ThemeSwatch'
 import Wiggle from '../components/Wiggle'
 import XpBar from '../components/XpBar'
 import { LEVELS } from '../game/levels'
@@ -7,7 +8,7 @@ import { getReplaysRemaining, isLevelUnlocked, type Progress } from '../game/pro
 import type { PlayerXpState } from '../game/playerProgress'
 import { availableSkillPoints, type SkillLevels } from '../game/skills'
 import { activeSelection, BOUNTY_SLOT_CAPACITY, DAILY_BOUNTY_LIMIT, type BountyState } from '../game/bounties'
-import { THEMES, type ThemeId } from '../game/theme'
+import { isThemeUnlocked, THEMES, unlockDescription, type ThemeId } from '../game/theme'
 
 interface OverworldProps {
   progress: Progress
@@ -150,19 +151,34 @@ export default function Overworld({
                   <div className="menu-section-label">
                     <Wiggle>Theme</Wiggle>
                   </div>
-                  {THEMES.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={
-                        theme === t.id ? 'menu-item menu-theme-item menu-theme-item--active' : 'menu-item menu-theme-item'
-                      }
-                      onClick={() => onSelectTheme(t.id)}
-                    >
-                      <span className="menu-theme-swatch" style={{ background: t.swatch }} aria-hidden="true" />
-                      <Wiggle>{t.name}</Wiggle>
-                    </button>
-                  ))}
+                  {THEMES.map((t) => {
+                    const unlocked = isThemeUnlocked(t, progress.unlockedLevel, playerXp.level)
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        className={[
+                          'menu-item',
+                          'menu-theme-item',
+                          theme === t.id ? 'menu-theme-item--active' : '',
+                          !unlocked ? 'menu-theme-item--locked' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        disabled={!unlocked}
+                        onClick={() => onSelectTheme(t.id)}
+                      >
+                        <ThemeSwatch ink={t.ink} paper={t.paper} className="menu-theme-swatch" />
+                        <span className="menu-theme-info">
+                          <Wiggle>{t.name}</Wiggle>
+                          {!unlocked && t.unlock && (
+                            <span className="menu-theme-unlock-hint">{unlockDescription(t.unlock)}</span>
+                          )}
+                        </span>
+                        {!unlocked && <LockIcon className="menu-theme-lock-icon" />}
+                      </button>
+                    )
+                  })}
                   <div className="menu-divider" />
                   <button
                     type="button"
@@ -227,29 +243,47 @@ export default function Overworld({
             const bestScore = progress.bestScores[level.id]
 
             const status = completed ? 'completed' : unlocked ? 'unlocked' : 'locked'
+            // A theme tied to clearing this specific level gets a little
+            // floating preview badge on its node, advertising the reward
+            // whether or not the level (and so the theme) is cleared yet.
+            const themeUnlockedHere = THEMES.find((t) => t.unlock?.type === 'level' && t.unlock.value === level.id)
 
             return (
-              <button
-                key={level.id}
-                ref={isCurrent ? currentNodeRef : undefined}
-                type="button"
-                className={`node node--${status}`}
-                style={{ left: pos.x, top: pos.y }}
-                disabled={!unlocked}
-                onClick={() => (completed ? setReplayLevelId(level.id) : onSelectLevel(level.id))}
-                aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
-              >
-                {completed ? (
-                  <CheckIcon />
-                ) : status === 'locked' ? (
-                  <LockIcon className="node-icon" />
-                ) : (
-                  <span className="node-number">{level.id}</span>
+              <Fragment key={level.id}>
+                <button
+                  ref={isCurrent ? currentNodeRef : undefined}
+                  type="button"
+                  className={`node node--${status}`}
+                  style={{ left: pos.x, top: pos.y }}
+                  disabled={!unlocked}
+                  onClick={() => (completed ? setReplayLevelId(level.id) : onSelectLevel(level.id))}
+                  aria-label={`${level.name}${completed ? ' (completed)' : unlocked ? '' : ' (locked)'}`}
+                >
+                  {completed ? (
+                    <CheckIcon />
+                  ) : status === 'locked' ? (
+                    <LockIcon className="node-icon" />
+                  ) : (
+                    <span className="node-number">{level.id}</span>
+                  )}
+                  <span className="node-label">{level.name}</span>
+                  <span className="node-goal">Goal {level.goalScore}</span>
+                  {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}
+                </button>
+                {themeUnlockedHere && (
+                  <div
+                    className="theme-unlock-badge"
+                    style={{ left: pos.x + 28, top: pos.y - 28 }}
+                    title={`Clear this level to unlock the ${themeUnlockedHere.name} theme`}
+                  >
+                    <ThemeSwatch
+                      ink={themeUnlockedHere.ink}
+                      paper={themeUnlockedHere.paper}
+                      className="theme-unlock-badge-swatch"
+                    />
+                  </div>
                 )}
-                <span className="node-label">{level.name}</span>
-                <span className="node-goal">Goal {level.goalScore}</span>
-                {bestScore !== undefined && <span className="node-score">Best {bestScore}</span>}
-              </button>
+              </Fragment>
             )
           })}
         </div>
