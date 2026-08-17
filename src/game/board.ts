@@ -15,11 +15,56 @@ export function randomIcon(): IconType {
 // that rate ramps in starting around level 5 — hazardVariant picks which
 // concrete hazard tile that roll produces, plain or glass), or an arrow
 // power tile once arrowRate is above 0 (unlocked and ramped via the Arrow
-// Tile skill).
-function rollFillType(hazardRate: number, arrowRate: number, hazardVariant: 'hazard' | 'glassHazard'): TileType {
+// Tile skill). `forbidden` excludes icon types that would complete an
+// instant, un-earned match against tiles already settled this refill pass
+// — same avoidance createInitialTiles already does for the starting
+// board, just applied here too (see collapseAndRefill).
+function rollFillType(
+  hazardRate: number,
+  arrowRate: number,
+  hazardVariant: 'hazard' | 'glassHazard',
+  forbidden: IconType[],
+): TileType {
   if (hazardRate > 0 && Math.random() < hazardRate) return hazardVariant
   if (arrowRate > 0 && Math.random() < arrowRate) return 'arrow'
-  return randomIcon()
+  // Checking three directions (up/down/left, see forbiddenIconsAt) can in
+  // rare cases forbid all of ICON_TYPES at once — fall back to an
+  // unconstrained roll rather than end up with no valid choice at all.
+  const choices = ICON_TYPES.filter((icon) => !forbidden.includes(icon))
+  const pool = choices.length > 0 ? choices : ICON_TYPES
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
+// Icon types that would complete a 3-in-a-row the instant this fill tile
+// lands, given what's already settled around it. Refill fills top-to-bottom
+// column by column, so tiles above and to the left are always already
+// decided (mirrors createInitialTiles' own forbidden-list logic) — but
+// unlike a fresh board, a refill can also have surviving tiles already
+// fixed BELOW a new one (gravity keeps survivors at the bottom of their
+// column), so this also has to look down to catch a new tile landing
+// right above two already-matching survivors.
+function forbiddenIconsAt(
+  settledType: (TileType | undefined)[],
+  row: number,
+  col: number,
+  rows: number,
+  cols: number,
+): IconType[] {
+  const forbidden: IconType[] = []
+
+  const up1 = row >= 1 ? settledType[(row - 1) * cols + col] : undefined
+  const up2 = row >= 2 ? settledType[(row - 2) * cols + col] : undefined
+  if (up1 && up1 === up2 && ICON_TYPES.includes(up1 as IconType)) forbidden.push(up1 as IconType)
+
+  const down1 = row + 1 < rows ? settledType[(row + 1) * cols + col] : undefined
+  const down2 = row + 2 < rows ? settledType[(row + 2) * cols + col] : undefined
+  if (down1 && down1 === down2 && ICON_TYPES.includes(down1 as IconType)) forbidden.push(down1 as IconType)
+
+  const left1 = col >= 1 ? settledType[row * cols + (col - 1)] : undefined
+  const left2 = col >= 2 ? settledType[row * cols + (col - 2)] : undefined
+  if (left1 && left1 === left2 && ICON_TYPES.includes(left1 as IconType)) forbidden.push(left1 as IconType)
+
+  return forbidden
 }
 
 // Builds a starting board with no pre-existing 3-in-a-row matches.
@@ -337,12 +382,32 @@ export function collapseAndRefill(
   const settled: Tile[] = []
   const spawned: Tile[] = []
 
+  // Tracks the settled type at each final (row, col) as columns are
+  // decided left to right, so each new fill tile can see what's already
+  // above and to its left this pass — without this, refills were pure
+  // independent Math.random() per cell, which is what let a big, mostly
+  // empty board occasionally rain down a wall of coincidental simultaneous
+  // matches purely by chance.
+  const settledType: (TileType | undefined)[] = new Array(rows * cols)
+
   for (let col = 0; col < cols; col++) {
     const originalColumn = survivors.filter((t) => t.col === col).sort((a, b) => a.row - b.row)
     const missing = rows - originalColumn.length
-    const newTiles = Array.from({ length: missing }, () =>
-      createTile(rollFillType(hazardRate, arrowRate, hazardVariant), 0, col),
-    )
+
+    // Survivors keep their existing type, but still need to be recorded
+    // (at their final row) before this column's new tiles are rolled,
+    // since the new tiles land above them.
+    originalColumn.forEach((tile, i) => {
+      settledType[(missing + i) * cols + col] = tile.type
+    })
+
+    const newTiles: Tile[] = []
+    for (let row = 0; row < missing; row++) {
+      const forbidden = forbiddenIconsAt(settledType, row, col, rows, cols)
+      const type = rollFillType(hazardRate, arrowRate, hazardVariant, forbidden)
+      settledType[row * cols + col] = type
+      newTiles.push(createTile(type, 0, col))
+    }
     const column = [...newTiles, ...originalColumn]
 
     column.forEach((tile, i) => {
