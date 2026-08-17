@@ -30,7 +30,16 @@ import {
   type BountyId,
   type BountyState,
 } from './game/bounties'
-import { isThemeUnlocked, loadTheme, saveTheme, THEMES, type ThemeId } from './game/theme'
+import {
+  isThemeUnlocked,
+  loadSeenThemes,
+  loadTheme,
+  resetSeenThemes,
+  saveSeenThemes,
+  saveTheme,
+  THEMES,
+  type ThemeId,
+} from './game/theme'
 import './App.css'
 
 type Screen =
@@ -49,6 +58,7 @@ function App() {
   const [bountyRewards, setBountyRewards] = useState<BountyId[]>([])
   const [screen, setScreen] = useState<Screen>({ name: 'overworld' })
   const [theme, setTheme] = useState<ThemeId>(() => loadTheme())
+  const [seenThemeIds, setSeenThemeIds] = useState<ThemeId[]>(() => loadSeenThemes())
 
   // The theme lives on the document root (not a wrapper div) so every
   // themed CSS variable in index.css applies from the very top down,
@@ -64,6 +74,19 @@ function App() {
     if (!def || !isThemeUnlocked(def, progress.unlockedLevel, playerXp.level)) return
     setTheme(nextTheme)
     saveTheme(nextTheme)
+  }
+
+  const unlockedThemeIds = THEMES.filter((t) => isThemeUnlocked(t, progress.unlockedLevel, playerXp.level)).map(
+    (t) => t.id,
+  )
+  const hasUnseenTheme = unlockedThemeIds.some((id) => !seenThemeIds.includes(id))
+
+  // Called when the player opens the hamburger menu — clears the "something
+  // new in here" badge by marking every currently-unlocked theme as seen.
+  const handleThemeMenuOpened = () => {
+    if (!hasUnseenTheme) return
+    setSeenThemeIds(unlockedThemeIds)
+    saveSeenThemes(unlockedThemeIds)
   }
 
   const handleSelectLevel = (levelId: number) => {
@@ -144,12 +167,14 @@ function App() {
     resetPlayerXp()
     resetSkillLevels()
     resetBountyState()
+    resetSeenThemes()
 
     setProgress(loadProgress())
     setPlayerXp(computePlayerXpState(loadTotalXp()))
     setSkillLevels(loadSkillLevels())
     setBountyState(loadBountyState())
     setBountyRewards([])
+    setSeenThemeIds(loadSeenThemes())
   }
 
   if (screen.name === 'level') {
@@ -198,12 +223,14 @@ function App() {
       skillLevels={skillLevels}
       bountyState={bountyState}
       theme={theme}
+      hasUnseenTheme={hasUnseenTheme}
       onSelectLevel={handleSelectLevel}
       onReplayLevel={handleReplayLevel}
       onOpenSkillTree={handleOpenSkillTree}
       onOpenBounties={handleOpenBounties}
       onWipeProgress={handleWipeProgress}
       onSelectTheme={handleSelectTheme}
+      onThemeMenuOpened={handleThemeMenuOpened}
     />
   )
 }

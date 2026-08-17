@@ -16,12 +16,14 @@ interface OverworldProps {
   skillLevels: SkillLevels
   bountyState: BountyState
   theme: ThemeId
+  hasUnseenTheme: boolean
   onSelectLevel: (levelId: number) => void
   onReplayLevel: (levelId: number) => void
   onOpenSkillTree: () => void
   onOpenBounties: () => void
   onWipeProgress: () => void
   onSelectTheme: (theme: ThemeId) => void
+  onThemeMenuOpened: () => void
 }
 
 // Bottom-to-top winding path: level 1 at the bottom, highest level at the
@@ -90,12 +92,14 @@ export default function Overworld({
   skillLevels,
   bountyState,
   theme,
+  hasUnseenTheme,
   onSelectLevel,
   onReplayLevel,
   onOpenSkillTree,
   onOpenBounties,
   onWipeProgress,
   onSelectTheme,
+  onThemeMenuOpened,
 }: OverworldProps) {
   const points = availableSkillPoints(playerXp.level, skillLevels)
   const hasOpenBountySlot =
@@ -127,6 +131,14 @@ export default function Overworld({
     if (confirmed) onWipeProgress()
   }
 
+  const handleMenuToggle = () => {
+    setMenuOpen((open) => {
+      const next = !open
+      if (next) onThemeMenuOpened()
+      return next
+    })
+  }
+
   return (
     <div className="overworld-screen">
       <div className="overworld-header">
@@ -138,11 +150,12 @@ export default function Overworld({
             <button
               type="button"
               className="btn btn--ghost menu-btn"
-              onClick={() => setMenuOpen((open) => !open)}
+              onClick={handleMenuToggle}
               aria-label="Menu"
               aria-expanded={menuOpen}
             >
               <MenuIcon />
+              {hasUnseenTheme && <span className="nav-badge">1</span>}
             </button>
             {menuOpen && (
               <>
@@ -281,6 +294,9 @@ export default function Overworld({
                       paper={themeUnlockedHere.paper}
                       className="theme-unlock-badge-swatch"
                     />
+                    <span className="theme-unlock-badge-label">
+                      <Wiggle>New Theme!</Wiggle>
+                    </span>
                   </div>
                 )}
               </Fragment>

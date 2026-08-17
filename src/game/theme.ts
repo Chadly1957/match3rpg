@@ -66,3 +66,42 @@ export function saveTheme(theme: ThemeId): void {
     // Storage unavailable — the theme choice just won't persist across sessions.
   }
 }
+
+// Which themes the player has already opened the menu and seen — drives the
+// hamburger menu's "something new in here" notification badge. 'mono' is
+// always unlocked from the very start, so it starts pre-seen; otherwise a
+// brand new save would show the badge before the player has unlocked
+// anything themselves.
+const SEEN_STORAGE_KEY = 'match3rpg.themesSeen.v1'
+const DEFAULT_SEEN_THEMES: ThemeId[] = ['mono']
+
+function isValidThemeIdArray(value: unknown): value is ThemeId[] {
+  return Array.isArray(value) && value.every(isValidThemeId)
+}
+
+export function loadSeenThemes(): ThemeId[] {
+  try {
+    const raw = window.localStorage.getItem(SEEN_STORAGE_KEY)
+    if (!raw) return DEFAULT_SEEN_THEMES
+    const parsed: unknown = JSON.parse(raw)
+    return isValidThemeIdArray(parsed) ? parsed : DEFAULT_SEEN_THEMES
+  } catch {
+    return DEFAULT_SEEN_THEMES
+  }
+}
+
+export function saveSeenThemes(themeIds: ThemeId[]): void {
+  try {
+    window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(themeIds))
+  } catch {
+    // Storage unavailable — the notification will just keep reappearing.
+  }
+}
+
+export function resetSeenThemes(): void {
+  try {
+    window.localStorage.removeItem(SEEN_STORAGE_KEY)
+  } catch {
+    // Storage unavailable — nothing to clear.
+  }
+}
