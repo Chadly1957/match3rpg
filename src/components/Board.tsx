@@ -247,8 +247,6 @@ export default function Board({
 
       let combo = 0
       while (matches.ids.size > 0) {
-        combo += 1
-
         const arrowExtraIds = arrowRowClearIds(tilesRef.current, matches, { rows, cols })
 
         // Cracking happens before we settle on this step's cleared-id set:
@@ -262,6 +260,9 @@ export default function Board({
             ? new Set([...matches.ids, ...arrowExtraIds, ...crackedGlassIds])
             : matches.ids
 
+        const { points: matchPoints, comboAfter } = scoreForMatch(matches.runs, combo)
+        combo = comboAfter
+
         setMatchedIds(clearedIds)
         setMessage(combo === 1 ? 'Match!' : `Combo x${combo}!`)
 
@@ -274,7 +275,6 @@ export default function Board({
         bountyFlagsRef.current.fourInRow ||= matches.runs.some((run) => run.cells.length >= 4)
         onBountyProgress?.({ ...bountyFlagsRef.current })
 
-        const matchPoints = scoreForMatch(matches.runs, combo)
         const wipePoints = scoreForArrowWipe(tilesRef.current, arrowExtraIds, combo)
         scoreRef.current += Math.round((matchPoints + wipePoints) * scoreMultiplier)
         onScoreChange?.(scoreRef.current)

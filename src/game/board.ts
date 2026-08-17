@@ -200,13 +200,31 @@ function pointsForRunLength(length: number): number {
   return BASE_RUN_POINTS + Math.max(0, length - 3) * EXTRA_TILE_POINTS
 }
 
-// Chain reactions are worth progressively more: each cascade step (combo)
-// multiplies the base points, matching the "chains matter" feel of the RPG
-// scoring system. Longer runs (possible once the board is bigger than 3x3)
-// score more than a plain 3-in-a-row.
-export function scoreForMatch(runs: RunInfo[], combo: number): number {
-  const basePoints = runs.reduce((sum, run) => sum + pointsForRunLength(run.cells.length), 0)
-  return basePoints * combo
+export interface MatchScoreResult {
+  points: number
+  // The chain count after scoring every run passed in — feed this back in
+  // as comboStart on the next call so the chain keeps climbing across
+  // cascade waves.
+  comboAfter: number
+}
+
+// Chain reactions are worth progressively more, and every run bumps the
+// chain by one step — including two+ separate, unconnected runs that
+// happen to complete in the very same wave (e.g. a big board dropping
+// tiles into two different 3-matches on the same refill). Each one gets
+// its own, increasingly higher combo tier instead of all sharing whatever
+// tier the wave itself is on, so simultaneous matches are never
+// under-counted relative to matches that happen to land one wave apart.
+// Longer runs (possible once the board is bigger than 3x3) score more
+// than a plain 3-in-a-row on top of that.
+export function scoreForMatch(runs: RunInfo[], comboStart: number): MatchScoreResult {
+  let combo = comboStart
+  let points = 0
+  for (const run of runs) {
+    combo += 1
+    points += pointsForRunLength(run.cells.length) * combo
+  }
+  return { points, comboAfter: combo }
 }
 
 // A run of 3+ arrows scores like any other match (via scoreForMatch above),
