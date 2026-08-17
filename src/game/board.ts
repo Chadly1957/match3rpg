@@ -15,7 +15,7 @@ export function randomIcon(): IconType {
 // make spontaneous matches impossible, which read as too sanitized/lucky-
 // proof; this just makes them noticeably rarer than plain chance instead
 // of removing them outright.
-const REFILL_AVOID_CHANCE = 0.9
+const REFILL_AVOID_CHANCE = 0.5
 
 // Rolls what a newly-created fill tile should be: usually a normal icon,
 // occasionally a hazard once hazardRate is above 0 (see levels.ts for how
