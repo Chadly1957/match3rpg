@@ -260,7 +260,7 @@ export default function Board({
             ? new Set([...matches.ids, ...arrowExtraIds, ...crackedGlassIds])
             : matches.ids
 
-        const { points: matchPoints, comboAfter } = scoreForMatch(matches.runs, combo)
+        const { points: matchPoints, comboAfter } = scoreForMatch(tilesRef.current, matches.runs, combo)
         combo = comboAfter
 
         setMatchedIds(clearedIds)

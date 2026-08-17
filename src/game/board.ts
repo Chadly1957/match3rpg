@@ -249,6 +249,11 @@ export function detectMatchShapes(runs: RunInfo[]): MatchShapes {
 
 const BASE_RUN_POINTS = 27
 const EXTRA_TILE_POINTS = 18
+// Arrows score flat per-tile instead of the base+extra run formula — a
+// plain 3-arrow match is 3 * 20 = 60, a 4-arrow match is 80, and so on,
+// whether the tile is part of the triggering run or swept up by one
+// (see scoreForArrowWipe below).
+const ARROW_TILE_POINTS = 20
 
 function pointsForRunLength(length: number): number {
   return BASE_RUN_POINTS + Math.max(0, length - 3) * EXTRA_TILE_POINTS
@@ -270,13 +275,19 @@ export interface MatchScoreResult {
 // tier the wave itself is on, so simultaneous matches are never
 // under-counted relative to matches that happen to land one wave apart.
 // Longer runs (possible once the board is bigger than 3x3) score more
-// than a plain 3-in-a-row on top of that.
-export function scoreForMatch(runs: RunInfo[], comboStart: number): MatchScoreResult {
+// than a plain 3-in-a-row on top of that. An all-arrow run scores flat
+// per-tile (ARROW_TILE_POINTS) instead of the base+extra formula.
+export function scoreForMatch(tiles: Tile[], runs: RunInfo[], comboStart: number): MatchScoreResult {
+  const typeById = new Map<number, TileType>()
+  for (const tile of tiles) typeById.set(tile.id, tile.type)
+
   let combo = comboStart
   let points = 0
   for (const run of runs) {
     combo += 1
-    points += pointsForRunLength(run.cells.length) * combo
+    const isArrowRun = run.cells.every((cell) => typeById.get(cell.id) === 'arrow')
+    const runPoints = isArrowRun ? run.cells.length * ARROW_TILE_POINTS : pointsForRunLength(run.cells.length)
+    points += runPoints * combo
   }
   return { points, comboAfter: combo }
 }
@@ -309,16 +320,20 @@ export function arrowRowClearIds(tiles: Tile[], matches: MatchResult, { cols }: 
   return extraIds
 }
 
-// Every icon an arrow row-clear sweeps up beyond the arrow match itself
-// scores as if it were one more tile in that match — hazards (plain or
-// glass) are along for the ride but stay worth nothing, same as when
-// they're cleared normally.
+// Every tile an arrow row-clear sweeps up beyond the triggering match
+// itself scores too — a normal icon as one more tile in that match
+// (EXTRA_TILE_POINTS), another arrow tile at its own flat rate
+// (ARROW_TILE_POINTS) same as if it'd been part of the match directly —
+// hazards (plain or glass) are along for the ride but stay worth nothing,
+// same as when they're cleared normally.
 export function scoreForArrowWipe(tiles: Tile[], extraIds: Set<number>, combo: number): number {
-  let scoringTiles = 0
+  let points = 0
   for (const tile of tiles) {
-    if (extraIds.has(tile.id) && tile.type !== 'hazard' && tile.type !== 'glassHazard') scoringTiles += 1
+    if (!extraIds.has(tile.id)) continue
+    if (tile.type === 'hazard' || tile.type === 'glassHazard') continue
+    points += tile.type === 'arrow' ? ARROW_TILE_POINTS : EXTRA_TILE_POINTS
   }
-  return scoringTiles * EXTRA_TILE_POINTS * combo
+  return points * combo
 }
 
 export const GLASS_HAZARD_MAX_CRACKS = 3
