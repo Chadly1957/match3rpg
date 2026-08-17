@@ -10,15 +10,22 @@ export function randomIcon(): IconType {
   return ICON_TYPES[Math.floor(Math.random() * ICON_TYPES.length)]
 }
 
+// How often a refill actually dodges spawning an instant, un-earned match
+// (see forbiddenIconsAt) rather than just rolling freely anyway. 1 would
+// make spontaneous matches impossible, which read as too sanitized/lucky-
+// proof; this just makes them noticeably rarer than plain chance instead
+// of removing them outright.
+const REFILL_AVOID_CHANCE = 0.9
+
 // Rolls what a newly-created fill tile should be: usually a normal icon,
 // occasionally a hazard once hazardRate is above 0 (see levels.ts for how
 // that rate ramps in starting around level 5 — hazardVariant picks which
 // concrete hazard tile that roll produces, plain or glass), or an arrow
 // power tile once arrowRate is above 0 (unlocked and ramped via the Arrow
-// Tile skill). `forbidden` excludes icon types that would complete an
+// Tile skill). `forbidden` lists icon types that would complete an
 // instant, un-earned match against tiles already settled this refill pass
-// — same avoidance createInitialTiles already does for the starting
-// board, just applied here too (see collapseAndRefill).
+// — same idea createInitialTiles uses for the starting board, just applied
+// probabilistically here (REFILL_AVOID_CHANCE) instead of as a hard rule.
 function rollFillType(
   hazardRate: number,
   arrowRate: number,
@@ -27,10 +34,12 @@ function rollFillType(
 ): TileType {
   if (hazardRate > 0 && Math.random() < hazardRate) return hazardVariant
   if (arrowRate > 0 && Math.random() < arrowRate) return 'arrow'
+
+  const shouldAvoid = forbidden.length > 0 && Math.random() < REFILL_AVOID_CHANCE
+  const choices = shouldAvoid ? ICON_TYPES.filter((icon) => !forbidden.includes(icon)) : ICON_TYPES
   // Checking three directions (up/down/left, see forbiddenIconsAt) can in
   // rare cases forbid all of ICON_TYPES at once — fall back to an
   // unconstrained roll rather than end up with no valid choice at all.
-  const choices = ICON_TYPES.filter((icon) => !forbidden.includes(icon))
   const pool = choices.length > 0 ? choices : ICON_TYPES
   return pool[Math.floor(Math.random() * pool.length)]
 }
