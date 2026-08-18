@@ -66,6 +66,13 @@
   --paper: #a6d8ff;
 }
 
+/* Violet theme: both tokens swap this time — a dark slate --ink instead of
+   black, on a periwinkle --paper instead of white. */
+:root[data-theme='violet'] {
+  --ink: #4c4b63;
+  --paper: #5386e4;
+}
+
 * {
   box-sizing: border-box;
 }

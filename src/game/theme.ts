@@ -4,7 +4,7 @@
 // needed. This file tracks which one is picked and persists it, plus each
 // theme's own ink/paper pair (so the picker UI can preview a theme's
 // colors without switching to it) and what unlocks it.
-export type ThemeId = 'mono' | 'blue'
+export type ThemeId = 'mono' | 'blue' | 'violet'
 
 export interface ThemeUnlock {
   // 'level': unlocked once that numbered game level has been cleared.
@@ -30,6 +30,13 @@ export const THEMES: ThemeDef[] = [
     ink: '#000000',
     paper: '#a6d8ff',
     unlock: { type: 'level', value: 20 },
+  },
+  {
+    id: 'violet',
+    name: 'Violet',
+    ink: '#4c4b63',
+    paper: '#5386e4',
+    unlock: { type: 'level', value: 35 },
   },
 ]
 
