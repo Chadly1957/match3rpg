@@ -415,11 +415,14 @@
   height: 82%;
 }
 
+/* Temporary code-drawn stand-in until a hand-drawn glassHazard.png is
+   uploaded (see public/icons/) — a plain irregular square needs no mask at
+   all, so this skips the PNG entirely rather than masking a missing file.
+   Swap back to the mask-image rule above once the art exists. */
 .icon-mask--glassHazard {
-  -webkit-mask-image: url('/icons/glassHazard.png');
-  mask-image: url('/icons/glassHazard.png');
   width: 92%;
   height: 92%;
+  border-radius: var(--radius-tile);
 }
 
 .tile-box--hazard {
