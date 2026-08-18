@@ -39,7 +39,13 @@ const HAZARD_RAMP_END_LEVEL = 10
 const HAZARD_MIN_RATE = 0.03
 const HAZARD_MAX_RATE = 0.08
 
+// Glass hazards spawn at their own (lower) rate rather than inheriting the
+// classic hazard's ramped-up HAZARD_MAX_RATE — they take 3 hits to clear
+// instead of 1, so the same spawn rate as the classic X felt overpowering.
+const GLASS_HAZARD_RATE = 0.05
+
 export function getHazardRate(id: number): number {
+  if (usesGlassHazard(id)) return GLASS_HAZARD_RATE
   if (id < HAZARD_START_LEVEL) return 0
   if (id >= HAZARD_RAMP_END_LEVEL) return HAZARD_MAX_RATE
 
@@ -48,8 +54,8 @@ export function getHazardRate(id: number): number {
 }
 
 // From this level on, every hazard spawn rolls as a glass hazard instead
-// of the classic X — same spawn rate (getHazardRate above), different
-// tile (see the TileType comment in types.ts for how it's destroyed).
+// of the classic X — different tile (see the TileType comment in types.ts
+// for how it's destroyed), and its own spawn rate (GLASS_HAZARD_RATE above).
 export const GLASS_HAZARD_START_LEVEL = 21
 
 export function usesGlassHazard(id: number): boolean {
